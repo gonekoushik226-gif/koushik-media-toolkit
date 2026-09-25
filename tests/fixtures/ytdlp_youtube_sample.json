@@ -1,0 +1,29 @@
+{
+  "_type": "video",
+  "id": "aqz-KE-bpKQ",
+  "title": "Big Buck Bunny 60fps 4K - Official Blender Foundation Short Film",
+  "uploader": "Blender",
+  "duration": 635,
+  "extractor_key": "Youtube",
+  "webpage_url": "https://www.youtube.com/watch?v=aqz-KE-bpKQ",
+  "live_status": "not_live",
+  "is_live": false,
+  "format_id": "401+251",
+  "ext": "webm",
+  "formats": [
+    {"format_id": "sb0", "ext": "mhtml", "protocol": "mhtml", "vcodec": "none", "acodec": "none", "width": 320, "height": 180, "format_note": "storyboard"},
+    {"format_id": "233", "ext": "mp4", "protocol": "m3u8_native", "vcodec": "none", "format_note": "Default, low", "has_drm": false},
+    {"format_id": "139", "ext": "m4a", "protocol": "https", "vcodec": "none", "acodec": "mp4a.40.5", "tbr": 48.792, "abr": 48.792, "asr": 22050, "audio_channels": 2, "filesize": 3871021, "format_note": "low", "language_preference": -1, "has_drm": false},
+    {"format_id": "140-drc", "ext": "m4a", "protocol": "https", "vcodec": "none", "acodec": "mp4a.40.2", "tbr": 129.481, "abr": 129.481, "asr": 44100, "audio_channels": 2, "filesize": 10271496, "format_note": "medium, DRC", "language_preference": -1, "has_drm": false},
+    {"format_id": "140", "ext": "m4a", "protocol": "https", "vcodec": "none", "acodec": "mp4a.40.2", "tbr": 129.481, "abr": 129.481, "asr": 44100, "audio_channels": 2, "filesize": 10271496, "format_note": "medium", "language_preference": -1, "has_drm": false},
+    {"format_id": "251", "ext": "webm", "protocol": "https", "vcodec": "none", "acodec": "opus", "tbr": 128.612, "abr": 128.612, "asr": 48000, "audio_channels": 2, "filesize": 10202210, "format_note": "medium", "language_preference": -1, "has_drm": false},
+    {"format_id": "269", "ext": "mp4", "protocol": "m3u8_native", "vcodec": "avc1.4D400C", "acodec": "none", "width": 256, "height": 144, "fps": 30.0, "tbr": 169.684, "has_drm": false},
+    {"format_id": "160", "ext": "mp4", "protocol": "https", "vcodec": "avc1.4d400c", "acodec": "none", "width": 256, "height": 144, "fps": 30, "tbr": 54.511, "filesize": 4323893, "format_note": "144p", "has_drm": false},
+    {"format_id": "299", "ext": "mp4", "protocol": "https", "vcodec": "avc1.64002a", "acodec": "none", "width": 1920, "height": 1080, "fps": 60, "tbr": 3247.821, "filesize": 257619653, "format_note": "1080p60", "has_drm": false},
+    {"format_id": "303", "ext": "webm", "protocol": "https", "vcodec": "vp9", "acodec": "none", "width": 1920, "height": 1080, "fps": 60, "tbr": 2127.264, "filesize": 168736189, "format_note": "1080p60", "has_drm": false},
+    {"format_id": "617", "ext": "mp4", "protocol": "m3u8_native", "vcodec": "vp09.00.41.08", "acodec": "none", "width": 1920, "height": 1080, "fps": 60.0, "tbr": 5022.446, "has_drm": false},
+    {"format_id": "308", "ext": "webm", "protocol": "https", "vcodec": "vp9", "acodec": "none", "width": 2560, "height": 1440, "fps": 60, "tbr": 5967.715, "filesize": 473363704, "format_note": "1440p60", "has_drm": false},
+    {"format_id": "401", "ext": "mp4", "protocol": "https", "vcodec": "av01.0.13M.08", "acodec": "none", "width": 3840, "height": 2160, "fps": 60, "tbr": 8981.827, "filesize": 712445280, "format_note": "2160p60", "has_drm": false},
+    {"format_id": "18", "ext": "mp4", "protocol": "https", "vcodec": "avc1.42001E", "acodec": "mp4a.40.2", "width": 640, "height": 360, "fps": 30, "tbr": 500.5, "filesize_approx": 39720000, "format_note": "360p", "has_drm": false}
+  ]
+}

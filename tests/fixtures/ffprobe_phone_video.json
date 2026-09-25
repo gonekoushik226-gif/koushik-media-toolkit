@@ -1,0 +1,27 @@
+{
+  "streams": [
+    {
+      "index": 0, "codec_name": "hevc", "codec_long_name": "H.265 / HEVC", "profile": "Main",
+      "codec_type": "video", "width": 1920, "height": 1080, "pix_fmt": "yuv420p",
+      "r_frame_rate": "30/1", "avg_frame_rate": "30000/1001", "duration": "12.345000", "bit_rate": "15234000",
+      "disposition": {"default": 1, "attached_pic": 0},
+      "tags": {"language": "und", "handler_name": "VideoHandle"},
+      "side_data_list": [{"side_data_type": "Display Matrix", "rotation": -90}]
+    },
+    {
+      "index": 1, "codec_name": "aac", "codec_long_name": "AAC", "codec_type": "audio",
+      "sample_fmt": "fltp", "sample_rate": "48000", "channels": 2, "channel_layout": "stereo",
+      "duration": "12.330000", "bit_rate": "256000",
+      "disposition": {"default": 1, "attached_pic": 0}, "tags": {"language": "eng"}
+    },
+    {
+      "index": 2, "codec_type": "data", "codec_tag_string": "mebx", "duration": "12.3",
+      "disposition": {"default": 0}
+    }
+  ],
+  "format": {
+    "filename": "IMG_0001.MOV", "nb_streams": 3, "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+    "format_long_name": "QuickTime / MOV", "duration": "12.345000", "size": "23456789", "bit_rate": "15200000",
+    "tags": {"creation_time": "2024-05-01T10:00:00.000000Z", "com.apple.quicktime.make": "Apple"}
+  }
+}

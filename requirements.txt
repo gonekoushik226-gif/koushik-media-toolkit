@@ -1,0 +1,7 @@
+# Runtime dependencies (exact versions used for the released build).
+PySide6-Essentials==6.11.2   # user interface (only the essential Qt modules)
+yt-dlp[default]==2026.8.19   # website video/audio downloads (+ YouTube challenge solver, crypto, brotli...)
+pypdf==6.14.2                # merge / split PDFs
+PyMuPDF==1.28.2              # render PDF pages, build PDFs from images, repair/decrypt fallback
+Pillow==12.3.0               # image editing and conversion
+requests==2.34.2             # direct PDF downloads

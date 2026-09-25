@@ -1,0 +1,19 @@
+{
+  "streams": [
+    {
+      "index": 0, "codec_name": "mp3", "codec_type": "audio", "sample_fmt": "fltp", "sample_rate": "44100",
+      "channels": 2, "channel_layout": "stereo", "bit_rate": "320000", "duration": "215.040000",
+      "disposition": {"default": 0, "attached_pic": 0}
+    },
+    {
+      "index": 1, "codec_name": "mjpeg", "codec_type": "video", "width": 600, "height": 600, "pix_fmt": "yuvj420p",
+      "r_frame_rate": "90000/1", "avg_frame_rate": "0/0", "disposition": {"default": 0, "attached_pic": 1},
+      "tags": {"comment": "Cover (front)"}
+    }
+  ],
+  "format": {
+    "format_name": "mp3", "format_long_name": "MP2/3 (MPEG audio layer 2/3)", "duration": "215.040000",
+    "size": "8612345", "bit_rate": "320400",
+    "tags": {"TITLE": "Song", "Artist": "Band", "album": "Album", "date": "2021"}
+  }
+}

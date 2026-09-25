@@ -1,0 +1,31 @@
+[project]
+name = "koushik-media-toolkit"
+version = "1.0.0"
+description = "Windows desktop toolkit for video, audio, image and PDF tasks"
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+markers = [
+    "ffmpeg: needs FFmpeg/FFprobe (skipped automatically when they are missing)",
+    "gui: creates Qt widgets (runs headless with QT_QPA_PLATFORM=offscreen)",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning:pypdf.*",
+]
+
+[tool.ruff]
+line-length = 150
+target-version = "py311"
+extend-exclude = [".venv", "build", "dist", "release", "vendor"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "B", "I", "UP", "PLE"]
+ignore = [
+    "E731",   # small lambdas are clearer in argument builders
+    "B008",   # function calls in defaults (dataclass field factories)
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
