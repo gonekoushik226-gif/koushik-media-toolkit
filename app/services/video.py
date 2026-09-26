@@ -16,6 +16,7 @@ from app.core.errors import InvalidInputError
 from app.core.jobs import JobContext
 from app.models.media import MediaInfo, StreamInfo, media_summary
 from app.models.results import JobResult
+from app.services import subtitles as subs
 from app.services.ffmpeg.codecs import (
     AUDIO_FORMATS,
     audio_encoder_args,
@@ -24,7 +25,9 @@ from app.services.ffmpeg.codecs import (
     video_encoder_args,
 )
 from app.services.ffmpeg.processor import Attempt, Expectation, MediaProcessor
+from app.services.subtitles import SubtitleStyle
 from app.services.tools import MediaTools
+from app.utils.timefmt import format_duration
 from app.utils.units import human_size
 
 log = logging.getLogger(__name__)
@@ -462,4 +465,71 @@ class VideoService:
                     "The compressed file is not smaller than the original. The original was already "
                     "efficiently compressed; try 'Smallest file' or a lower resolution."
                 )
+        return result
+
+    def burn_subtitles(
+        self,
+        source: Path,
+        subtitle: Path,
+        output: Path,
+        style: SubtitleStyle,
+        ctx: JobContext,
+        encoding: str = "auto",
+        offset: float = 0.0,
+    ) -> JobResult:
+        """Draw the subtitles of ``subtitle`` (SRT/ASS/SSA/VTT) permanently into
+        the picture. ``offset`` shifts them in seconds (positive = later)."""
+        if abs(offset) > subs.MAX_OFFSET_SECONDS:
+            raise InvalidInputError("The timing adjustment must be less than one hour.")
+        style.validate()
+        info, video = self._probe_video(source, ctx)
+        duration = info.best_duration
+        ext = output.suffix.lstrip(".").lower()
+        work = Path(tempfile.mkdtemp(prefix="mt-subs-"))
+        try:
+            ctx.set_status(f"Reading {subtitle.name}...")
+            copy, used_encoding = subs.prepare_subtitles(subtitle, work, encoding)
+            times = [t + offset for t in subs.cue_start_times(self.processor.tools.ffprobe, copy)]
+            if not times:
+                raise InvalidInputError(
+                    f"No subtitles were found in '{subtitle.name}'. Check that it is a valid "
+                    f"{subs.subtitle_ext(subtitle).upper()} file, or choose its text encoding by hand.")
+            if duration and times[0] >= duration:
+                raise InvalidInputError(
+                    f"All subtitles start after the end of the video (the first one at {format_duration(times[0])}, "
+                    f"the video is {format_duration(duration)} long). Check that the subtitle file belongs to this "
+                    "video, or adjust the timing.")
+            shown = [t for t in times if t >= 0 and (not duration or t < duration)]
+            if not shown:
+                raise InvalidInputError("With this timing adjustment every subtitle falls before the start of the "
+                                        "video. Use a smaller adjustment.")
+            options = f"filename={copy.name}:charenc=UTF-8"
+            if not (style.keep_file_style and subs.subtitle_ext(subtitle) in subs.STYLED_EXTENSIONS):
+                options += f":force_style='{style.force_style()}'"
+            flt = f"subtitles={options}"
+            if offset:
+                # The subtitles filter uses the frame time; shift it for the filter only, then back.
+                flt = f"setpts=PTS-({offset:.3f})/TB,{flt},setpts=PTS+({offset:.3f})/TB"
+            base = ["-i", str(source), "-map", f"0:{video.index}", "-map", "0:a?", "-sn", "-dn", "-vf", flt,
+                    *video_encoder_args(ext, 20)]
+            expect = Expectation(video=True, audio=info.has_audio, duration=duration)
+            attempts = [
+                Attempt("keeping audio as-is", lambda tmp: [*base, "-c:a", "copy", *container_extra_args(ext),
+                                                            str(tmp)], expect),
+                Attempt("converting audio", lambda tmp: [*base, *video_audio_encoder_args(ext),
+                                                         *container_extra_args(ext), str(tmp)], expect),
+            ]
+            self.processor.render_first_working(output, attempts, ctx, "Burning in subtitles",
+                                                progress_duration=duration, cwd=work)
+        finally:
+            shutil.rmtree(work, ignore_errors=True)
+        note = f" - {len(shown)} subtitle(s) burned in"
+        if encoding == "auto" and used_encoding not in ("utf-8", "utf-16", "ascii"):
+            # Tell the user which legacy encoding was assumed, so wrong letters are easy to fix.
+            note += f" (text read as {subs.encoding_label(used_encoding)})"
+        result = self._saved(output, note)
+        skipped = len(times) - len(shown)
+        if skipped:
+            result.warnings.append(f"{skipped} subtitle(s) fall outside the video's length and were not shown. "
+                                   "If that is unexpected, check the timing adjustment or the subtitle file.")
         return result

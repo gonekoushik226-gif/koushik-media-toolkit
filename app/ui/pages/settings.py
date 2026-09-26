@@ -98,6 +98,19 @@ class SettingsPage(QWidget):
         translation.addRow("", hint("Translation uses your own Google Gemini API key. The key is kept in Windows "
                                     "Credential Manager, not in the settings file."))
 
+        updates = self._group(layout, "Updates")
+        self.check_updates = QCheckBox("Tell me when a new version is available (checked when the app starts)")
+        updates.addRow("", self.check_updates)
+        updates_row = QHBoxLayout()
+        self.check_now = QPushButton("Check for updates now")
+        self.check_now.clicked.connect(self._check_updates_now)
+        updates_row.addWidget(self.check_now)
+        updates_row.addStretch(1)
+        updates.addRow("", self._wrap(updates_row))
+        updates.addRow("", hint("The app asks GitHub, where new versions are published, whether there is a newer "
+                                "one. Nothing personal is sent, and nothing is downloaded or installed "
+                                "automatically - you decide."))
+
         advanced = self._group(layout, "Advanced")
         advanced.addRow("", hint("Leave these empty to use the programs included with the application."))
         self.ffmpeg = self._file_row(advanced, "FFmpeg (ffmpeg.exe):", "Automatic")
@@ -205,6 +218,7 @@ class SettingsPage(QWidget):
         self.pdf_name.setText(s.pdf_default_name)
         self.pdf_dpi.setValue(s.pdf_dpi)
         self._select(self.translation_target, s.translation_target)
+        self.check_updates.setChecked(s.check_updates)
         self.ffmpeg.setText(s.ffmpeg_path)
         self.ffprobe.setText(s.ffprobe_path)
         self.ytdlp.setText(s.ytdlp_path)
@@ -233,6 +247,7 @@ class SettingsPage(QWidget):
             pdf_default_name=self.pdf_name.text().strip() or "combined",
             pdf_dpi=self.pdf_dpi.value(),
             translation_target=self.translation_target.currentData(),
+            check_updates=self.check_updates.isChecked(),
             ffmpeg_path=self.ffmpeg.text().strip().strip('"'),
             ffprobe_path=self.ffprobe.text().strip().strip('"'),
             ytdlp_path=self.ytdlp.text().strip().strip('"'),
@@ -270,3 +285,16 @@ class SettingsPage(QWidget):
 
             clear_cache()
             show_info(self, "Translation progress cleared", "Saved translation progress was removed.")
+
+    def _check_updates_now(self) -> None:
+        window = self.ctx.window
+        if window is None or not hasattr(window, "check_for_updates"):
+            return
+        self.check_now.setEnabled(False)
+        self.check_now.setText("Checking...")
+
+        def finished(_info) -> None:
+            self.check_now.setEnabled(True)
+            self.check_now.setText("Check for updates now")
+
+        window.check_for_updates(manual=True, on_finished=finished)

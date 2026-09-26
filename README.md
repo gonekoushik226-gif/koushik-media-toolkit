@@ -6,7 +6,7 @@
 
 <p align="center">
   One simple Windows app for everyday <b>video</b>, <b>audio</b>, <b>image</b> and <b>PDF</b> jobs - and <b>AI translation</b> of books, scans, manga and comics.<br>
-  Download from websites · trim · merge · convert · compress · crop · reorder · make, merge and split PDFs · translate PDFs
+  Download from websites · trim · merge · convert · compress · burn in subtitles · crop · reorder · make, merge and split PDFs · translate PDFs
 </p>
 
 <p align="center">
@@ -27,13 +27,13 @@ Go to the [**latest release**](../../releases/latest) and pick one file:
 
 | File | Choose it if you want |
 |---|---|
-| `MediaToolkit-1.1.0-Setup.exe` (≈130 MB) | A normal installed app: Start Menu entry, optional desktop shortcut, uninstall from *Settings → Apps*. Opens in about a second. **Recommended.** |
-| `MediaToolkit-1.1.0-Portable.exe` (≈180 MB) | A single file you can run from any folder or USB stick, without installing. Takes about 5 seconds to open. |
+| `MediaToolkit-1.2.0-Setup.exe` (≈130 MB) | A normal installed app: Start Menu entry, optional desktop shortcut, uninstall from *Settings → Apps*. Opens in about a second. **Recommended.** |
+| `MediaToolkit-1.2.0-Portable.exe` (≈180 MB) | A single file you can run from any folder or USB stick, without installing. Takes about 5 seconds to open. |
 
 * The installer does **not** need administrator rights (it installs for your user; you can choose "all users" on the first page).
 * **"Windows protected your PC"?** The app is not code-signed yet, so SmartScreen may warn the first time. Click **More info → Run anyway**.
 * Each release includes `SHA256SUMS.txt` so you can check the download (`Get-FileHash <file>` in PowerShell).
-* **Updating from 1.0.0:** just run the new installer - it replaces the old version and its shortcuts. The app's settings folder has a new name in 1.1.0, so choose your preferences in **Settings** once more.
+* **Updating:** download the new installer and run it. It **replaces the installed version** - same folder, shortcuts and entry in *Settings → Apps*, so you never end up with two copies - and keeps your settings. The portable EXE is a single file that is never installed, so after downloading a new one simply delete the old file. From version 1.2.0 on, the app tells you when a new version is available (see [Updates](#updates)); versions 1.0.0 and 1.1.0 cannot do that yet, so update those once by hand. (Coming from 1.0.0: the settings folder was renamed in 1.1.0, so choose your preferences in **Settings** once more.)
 
 ---
 
@@ -42,6 +42,7 @@ Go to the [**latest release**](../../releases/latest) and pick one file:
 ### 🎬 Video
 * **Download from a link** - YouTube and the [~1,800 sites supported by yt-dlp](https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md). Press *Analyze formats* to see every quality the site really offers (resolution, FPS, codecs, size, bitrate); pick one or keep *Best available*. When a quality has no sound, the best matching audio is added automatically.
 * Video information · Trim · Merge · Extract audio · Remove audio · Extract the video stream · Convert (MP4, MKV, MOV, WEBM, AVI) · Resize · Rotate 90°/180° · Flip · Change speed (0.25×-4×) · Change volume · Compress
+* **Burn in subtitles** from your own subtitle file (**SRT, ASS, SSA or WebVTT**): the text becomes part of the picture, so it shows on every player, phone and website. A subtitle file with the same name as the video (*Movie.srt*, *Movie.en.srt*) is picked automatically. Choose the text size, colour (white or yellow), an outline or a dark box for readability, and top or bottom position - or keep the styling stored in ASS/SSA files. Any language works (Telugu, Hindi, Arabic, Chinese, ...); old subtitle files in non-Unicode encodings are detected automatically or can be chosen by hand, and out-of-sync subtitles can be shifted earlier or later. The sound is kept as it is.
 
 ### 🎵 Audio / Music
 * **Download audio from a link** - keep the original or convert to **MP3, M4A, WAV, FLAC or OPUS** at the bitrate you choose.
@@ -74,6 +75,11 @@ Go to the [**latest release**](../../releases/latest) and pick one file:
 </p>
 
 <p align="center">
+  <img src="docs/screenshots/subtitles.png" width="49%" alt="Burn in subtitles">
+  <img src="docs/screenshots/subtitles-example.png" width="49%" alt="A video frame before and after burning in subtitles">
+</p>
+
+<p align="center">
   <img src="docs/screenshots/video-download.png" width="49%" alt="Choosing a download quality">
   <img src="docs/screenshots/images.png" width="49%" alt="Editing images">
 </p>
@@ -86,6 +92,7 @@ Go to the [**latest release**](../../releases/latest) and pick one file:
 * **Never leaves broken files**: results are written to a temporary file, checked, and only then saved under the real name. Existing files are only replaced if you agree.
 * Light and dark theme (follows Windows by default).
 * **Diagnostics** screen that checks every component and tells you how to fix problems.
+* **Update notifications**: when a new version is published, a bar at the top of the window says so, with a *Download* button.
 
 ---
 
@@ -102,6 +109,17 @@ Press **Home** (top-left, or `Ctrl+H`) to go back.
 **Settings** lets you choose the download folder, the default output folder, what happens when a file already exists (ask / keep both / replace), preferred video and audio formats and quality, the default translation language, and the theme.
 Settings are stored in `%APPDATA%\MediaToolkit`, logs in `%LOCALAPPDATA%\MediaToolkit\logs`.
 *Portable use:* put an empty file named `portable.txt` next to the portable EXE and everything is stored beside it instead (a saved API key is still kept in Windows Credential Manager, never in that folder).
+
+---
+
+## Updates
+
+When the app starts, it asks GitHub (where new versions are published) whether there is a newer version. If there is, a bar at the top of the window shows it:
+* **Download...** opens the release page; download the installer and run it - it replaces the installed version and keeps your settings. (Portable EXE: download the new file and delete the old one.)
+* **Skip this version** - no more reminders for that version (you will still hear about the next one).
+* **Later** - hide the bar until the next start.
+
+Nothing personal is sent - it is an ordinary request for the public release list - and nothing is downloaded or installed without you. Turn the check off, or check right away, in **Settings → Updates**. This works from version 1.2.0 on; people using 1.0.0 or 1.1.0 need to download 1.2.0 once by hand.
 
 ---
 
@@ -150,6 +168,9 @@ Google's official guide: <https://ai.google.dev/gemini-api/docs/api-key>. The sa
 | "Sign in to confirm you're not a bot" / login needed | Downloads that need an account are not supported. Try again later. |
 | "The link opened a web page instead of a PDF" | Open the link in your browser and copy the address of the PDF file itself. |
 | "The file is being used by another program" | Close the program that has the file open (media player, PDF viewer). |
+| Burned-in subtitles show wrong letters (Ã©, Ð¸, ...) | The subtitle file uses an old text encoding. The result message says which one was assumed; choose the right one under **Text encoding** (for example *Cyrillic (Windows-1251)*) and run it again. |
+| Burned-in subtitles appear too early or too late | Use **Timing adjustment**: a positive number of seconds shows them later, a negative number earlier. |
+| "No subtitles were found" | The file is not a valid SRT/ASS/SSA/VTT file, or it belongs to another video. Open it in Notepad to check it. |
 | Translate: "API key problem" | The key was not accepted. Copy the whole key again from Google AI Studio (or create a new one), then **Test key** and **Save key**. |
 | Translate: "Usage limit reached" / "Too many requests" | Your key's free limit is used up for now. Finished pages are kept - run the same translation again later (daily limits reset at midnight Pacific time). |
 | Translate: "AI model not available" | Open **AI provider & API key**, click **Refresh list** and choose another model. |
@@ -170,7 +191,7 @@ The complete source code is in this repository.
 python -m venv .venv
 .venv\Scripts\python.exe -m pip install -r requirements-dev.txt
 .venv\Scripts\python.exe run.py            # run the app
-.venv\Scripts\python.exe -m pytest         # 400+ tests, no internet or API key needed
+.venv\Scripts\python.exe -m pytest         # 450+ tests, no internet or API key needed
 .venv\Scripts\python.exe build.py          # portable EXE + installer -> release\
 ```
 
@@ -186,7 +207,7 @@ app/
 ├─ config/          settings, file locations, secure key storage (Windows Credential Manager)
 ├─ core/            errors, background jobs (progress + cancel), module registry
 ├─ models/          media information and download formats
-├─ services/        all the real work (FFmpeg, yt-dlp, images, PDF, translation) - no GUI code
+├─ services/        all the real work (FFmpeg, yt-dlp, images, PDF, subtitles, translation, updates) - no GUI code
 │  └─ translation/  AI provider (Gemini), text pages, image pages, bubble cleanup, resume
 ├─ ui/              PySide6 windows, pages and widgets
 └─ utils/           file names, sorting, time formats, URLs, logging
@@ -195,7 +216,7 @@ installer/          Inno Setup script
 build.py            build script
 docs/               developer guide and screenshots
 ```
-New modules (e.g. subtitles, GIF tools, OCR) plug in without changing the rest of the app - see the **[developer guide](docs/DEVELOPER_GUIDE.md)**.
+New modules (e.g. GIF tools, OCR, audio transcription) plug in without changing the rest of the app - see the **[developer guide](docs/DEVELOPER_GUIDE.md)**.
 
 ---
 
@@ -208,13 +229,13 @@ It is built on these excellent open-source projects:
 
 | Component | Used for | License |
 |---|---|---|
-| [FFmpeg](https://ffmpeg.org) (bundled GPL build from [BtbN/FFmpeg-Builds](https://github.com/BtbN/FFmpeg-Builds)) | video and audio processing | GPL-3.0 |
+| [FFmpeg](https://ffmpeg.org) (bundled GPL build from [BtbN/FFmpeg-Builds](https://github.com/BtbN/FFmpeg-Builds), with libass) | video and audio processing, burning in subtitles | GPL-3.0 |
 | [yt-dlp](https://github.com/yt-dlp/yt-dlp) | website downloads | Unlicense |
 | [PySide6 / Qt](https://www.qt.io/qt-for-python) | user interface | LGPL-3.0 |
 | [PyMuPDF](https://github.com/pymupdf/PyMuPDF) | PDF rendering, translated PDF pages (with its built-in Noto fonts) | AGPL-3.0 |
 | [pypdf](https://github.com/py-pdf/pypdf) | PDF merge and split | BSD-3-Clause |
 | [Pillow](https://python-pillow.org) | images, cleaning speech bubbles | MIT-CMU |
-| [requests](https://requests.readthedocs.io) | PDF downloads, Gemini API requests | Apache-2.0 |
+| [requests](https://requests.readthedocs.io) (with charset-normalizer) | PDF downloads, Gemini API requests, update check; detecting subtitle text encodings | Apache-2.0 / MIT |
 
 AI translation uses the [Google Gemini API](https://ai.google.dev/gemini-api/docs) with each user's own key and is subject to [Google's terms](https://ai.google.dev/gemini-api/terms). This project is not affiliated with Google.
 

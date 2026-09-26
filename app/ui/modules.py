@@ -62,7 +62,7 @@ def build_registry() -> ModuleRegistry:
     registry = ModuleRegistry()
     for spec in (
         ModuleSpec("video", "VIDEO", "Download from websites, trim, merge, convert, resize, rotate, change speed or "
-                   "volume, compress.", "video", _video, GROUP_MAIN, 10),
+                   "volume, compress, burn in subtitles.", "video", _video, GROUP_MAIN, 10),
         ModuleSpec("audio", "AUDIO / MUSIC", "Download music, convert to MP3 and more, trim, merge, fade, "
                    "change volume, edit tags.", "audio", _audio, GROUP_MAIN, 20),
         ModuleSpec("images", "IMAGES", "Crop, resize, rotate, adjust, convert and reorder images, or turn them "

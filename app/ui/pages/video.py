@@ -7,6 +7,7 @@ from pathlib import Path
 from PySide6.QtWidgets import QButtonGroup, QCheckBox, QDoubleSpinBox, QHBoxLayout, QLineEdit, QRadioButton, QSpinBox, QWidget
 
 from app.core.errors import InvalidInputError
+from app.services import subtitles as subs
 from app.services.ffmpeg.codecs import (
     AUDIO_FORMATS,
     VIDEO_INPUT_EXTENSIONS,
@@ -18,12 +19,15 @@ from app.services.video import COMPRESSION_LEVELS, TRANSFORMS
 from app.ui.pages.base import InfoPanel, OperationPanel, OperationsPage, SingleFilePanel
 from app.ui.widgets.common import combo, hint
 from app.ui.widgets.file_list import FileListWidget
+from app.ui.widgets.file_picker import FilePicker
 from app.ui.widgets.output_panel import OutputPanel
 from app.utils.timefmt import format_timestamp, parse_time
 
 VIDEO_EXTS = tuple(f".{e}" for e in VIDEO_INPUT_EXTENSIONS)
 VIDEO_FILTER = "Video files (" + " ".join(f"*{e}" for e in VIDEO_EXTS) + ");;All files (*.*)"
 BITRATES = {b: f"{b} kbps" for b in (96, 128, 160, 192, 256, 320)}
+SUBTITLE_EXTS = tuple(f".{e}" for e in subs.SUBTITLE_EXTENSIONS)
+SUBTITLE_FILTER = "Subtitle files (" + " ".join(f"*{e}" for e in SUBTITLE_EXTS) + ");;All files (*.*)"
 
 
 class _VideoPanel(SingleFilePanel):
@@ -403,6 +407,90 @@ class CompressPanel(_VideoPanel):
         return lambda output, ctx: service.compress(source, output, level, height, ctx)
 
 
+class BurnSubtitlesPanel(_VideoPanel):
+    key = "subtitles"
+    title = "Burn in subtitles"
+    description = ("Write the subtitles from your subtitle file (SRT, ASS, SSA or VTT) permanently into the picture, "
+                   "so they show on every player and website. The video is re-encoded; the sound is kept as it is.")
+    action_text = "Burn in subtitles"
+    output_suffix = "_subtitled"
+
+    def build_options(self) -> None:
+        group, form = self.form_group("Subtitle file")
+        self.subtitle = FilePicker(self.ctx, SUBTITLE_EXTS, SUBTITLE_FILTER, "Choose the subtitle file...")
+        self.subtitle.changed.connect(self._subtitle_changed)
+        self._auto_subtitle: Path | None = None
+        form.addRow("File:", self.subtitle)
+        form.addRow("", hint("A subtitle file with the same name as the video (for example Movie.srt or "
+                             "Movie.en.srt) is picked automatically."))
+        self.encoding = combo(subs.ENCODINGS, "auto")
+        form.addRow("Text encoding:", self.encoding)
+        self.offset = QDoubleSpinBox()
+        self.offset.setRange(-subs.MAX_OFFSET_SECONDS + 1, subs.MAX_OFFSET_SECONDS - 1)
+        self.offset.setDecimals(2)
+        self.offset.setSingleStep(0.1)
+        self.offset.setSuffix(" s")
+        form.addRow("Timing adjustment:", self.offset)
+        form.addRow("", hint("Only if the subtitles are out of sync: a positive value shows them later, a negative "
+                             "value earlier (for example -1.5 s)."))
+
+        _, look = self.form_group("Appearance")
+        self.size = combo({k: v[0] for k, v in subs.SIZES.items()}, "medium")
+        self.color = combo({k: v[0] for k, v in subs.COLORS.items()}, "white")
+        self.background = combo(subs.BACKGROUNDS, "outline")
+        self.position = combo({k: v[0] for k, v in subs.POSITIONS.items()}, "bottom")
+        look.addRow("Text size:", self.size)
+        look.addRow("Colour:", self.color)
+        look.addRow("Readability:", self.background)
+        look.addRow("Position:", self.position)
+        self.keep_style = QCheckBox("Keep the fonts, colours and positions stored in ASS/SSA files")
+        self.keep_style.setChecked(True)
+        self.keep_style.toggled.connect(lambda _: self._update_style_controls())
+        look.addRow("", self.keep_style)
+        self._update_style_controls()
+
+    def _is_styled(self) -> bool:
+        path = self.subtitle.path() if hasattr(self, "subtitle") else None
+        return path is not None and subs.subtitle_ext(path) in subs.STYLED_EXTENSIONS
+
+    def _update_style_controls(self) -> None:
+        styled = self._is_styled()
+        self.keep_style.setVisible(styled)
+        use_own = not (styled and self.keep_style.isChecked())
+        for widget in (self.size, self.color, self.background, self.position):
+            widget.setEnabled(use_own)
+
+    def _subtitle_changed(self, path: Path | None) -> None:
+        if path != self._auto_subtitle:
+            self._auto_subtitle = None  # chosen by the user: never replace it automatically
+        self._update_style_controls()
+
+    def _input_changed(self, path: Path | None) -> None:
+        super()._input_changed(path)
+        if path is None:
+            return
+        current = self.subtitle.path()
+        if current is None or current == self._auto_subtitle:
+            match = subs.find_matching_subtitles(path)
+            if match is not None:
+                self._auto_subtitle = match
+                self.subtitle.set_path(match)
+                self._auto_subtitle = match
+
+    def style(self) -> subs.SubtitleStyle:
+        return subs.SubtitleStyle(size=self.size.currentData(), color=self.color.currentData(),
+                                  background=self.background.currentData(), position=self.position.currentData(),
+                                  keep_file_style=self.keep_style.isChecked())
+
+    def make_job(self, source):
+        subtitle = self.subtitle.path()
+        if subtitle is None:
+            raise InvalidInputError("Please choose the subtitle file (SRT, ASS, SSA or VTT).")
+        service, style = self.service(), self.style()
+        encoding, offset = self.encoding.currentData(), round(self.offset.value(), 3)
+        return lambda output, ctx: service.burn_subtitles(source, subtitle, output, style, ctx, encoding, offset)
+
+
 def build_video_page(ctx) -> OperationsPage:
     from app.ui.pages.downloads import VideoDownloadPanel
 
@@ -420,6 +508,7 @@ def build_video_page(ctx) -> OperationsPage:
         ("speed", "Change speed", SpeedPanel),
         ("volume", "Change volume", VolumePanel),
         ("compress", "Compress", CompressPanel),
+        ("subtitles", "Burn in subtitles", BurnSubtitlesPanel),
     ]
     return OperationsPage(ctx, operations)
 

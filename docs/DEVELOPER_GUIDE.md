@@ -17,6 +17,7 @@ how to extend it. For installation, usage and build commands see the [README](..
  ┌───┴──────────────── app/services (no Qt) ─────────────────────────────────┐
  │ video · audio · images · pdf · downloads(ytdlp, plans, http) · diagnostics │
  │ ffmpeg/runner · ffmpeg/probe · ffmpeg/processor · ffmpeg/codecs · tools    │
+ │ subtitles · updates (GitHub releases)                                      │
  │ translation (provider · gemini · job · text_pages · image_pages · cleanup) │
  └───────────────┬──────────────────────────────────────┬─────────────────────┘
                  ▼                                      ▼
@@ -141,37 +142,38 @@ passed as separate `-metadata key=value` arguments.
 Themes live in `ui/theme.py` (colour tokens → palette + style sheet). Icons are SVGs in
 `assets/icons` using `currentColor`, tinted at runtime by `ui/icons.py`.
 
-## 9. Adding a module (example: "Subtitles")
+## 9. Adding a module (example: "GIF maker")
 
-1. **Service** - `app/services/subtitles.py`, no Qt:
+1. **Service** - `app/services/gif.py`, no Qt:
    ```python
-   def burn_in(tools: MediaTools, video: Path, subtitle: Path, output: Path, ctx: JobContext) -> JobResult:
+   def make_gif(tools: MediaTools, video: Path, output: Path, fps: int, width: int, ctx: JobContext) -> JobResult:
        processor = MediaProcessor(tools)
        info = processor.probe(video)
-       attempt = Attempt("encoding", lambda tmp: ["-i", str(video), "-vf", f"subtitles={...}", ..., str(tmp)],
+       attempt = Attempt("encoding", lambda tmp: ["-i", str(video), "-vf", f"fps={fps},scale={width}:-1", ..., str(tmp)],
                          Expectation(video=True, duration=info.best_duration))
-       processor.render_first_working(output, [attempt], ctx, "Adding subtitles")
+       processor.render_first_working(output, [attempt], ctx, "Making a GIF")
        return JobResult(f"Saved {output.name}", outputs=[output])
    ```
-   Add tests in `tests/test_subtitles.py` (use the `sample_video` fixture).
-2. **Panels** - `app/ui/pages/subtitles.py`:
+   Add tests in `tests/test_gif.py` (use the `sample_video` fixture).
+2. **Panels** - `app/ui/pages/gif.py`:
    ```python
-   class BurnInPanel(SingleFilePanel):
-       title = "Burn in subtitles"; action_text = "Add subtitles"; output_suffix = "_subtitled"
+   class MakeGifPanel(SingleFilePanel):
+       title = "Make a GIF"; action_text = "Make GIF"; output_suffix = "_animation"
        input_extensions = VIDEO_EXTS; input_filter = VIDEO_FILTER
-       def build_options(self): ...  # e.g. a FilePicker for the .srt file
+       def build_options(self): ...  # e.g. spin boxes for frame rate and width
+       def output_extension(self, source): return "gif"
        def make_job(self, source):
-           tools, subs = self.ctx.tools.media_tools(), self.subs.path()
-           if subs is None:
-               raise InvalidInputError("Please choose a subtitle file.")
-           return lambda output, ctx: burn_in(tools, source, subs, output, ctx)
+           tools, fps, width = self.ctx.tools.media_tools(), self.fps.value(), self.width.value()
+           if width < 16:
+               raise InvalidInputError("Please choose a width of at least 16 pixels.")
+           return lambda output, ctx: make_gif(tools, source, output, fps, width, ctx)
 
-   def build_subtitles_page(ctx):
-       return OperationsPage(ctx, [("burn", "Burn in subtitles", BurnInPanel)])
+   def build_gif_page(ctx):
+       return OperationsPage(ctx, [("make", "Make a GIF", MakeGifPanel)])
    ```
 3. **Register** - in `app/ui/modules.py`:
    ```python
-   ModuleSpec("subtitles", "SUBTITLES", "Add or extract subtitles.", "video", _subtitles, GROUP_MAIN, 50)
+   ModuleSpec("gif", "GIF", "Turn video clips into animated GIFs.", "video", _gif, GROUP_MAIN, 50)
    ```
    (add an SVG to `assets/icons` for a custom icon). The home screen and navigation pick it up.
 4. Run `pytest`, `ruff check app tests`, then `build.py` - the packaged self-test opens every
@@ -228,7 +230,48 @@ pages from older prompts are not reused.
 `provider.py`), then choose it in `AppContext.translation_provider()` and add its key name and
 setup steps to the key panel (`app/ui/pages/translate.py`).
 
-## 11. Testing strategy
+## 11. Burn in subtitles (`app/services/subtitles.py`, `VideoService.burn_subtitles`)
+
+* FFmpeg's `subtitles` filter (libass, HarfBuzz, FriBidi, fontconfig in the bundled build) draws
+  the text; system fonts are found automatically, including Indic, CJK and Arabic fallbacks.
+* **No filter-path escaping:** the user's file is read in Python, decoded (BOM / UTF-8 / detected
+  legacy code page / the encoding the user chose) and written as UTF-8 to a private temp folder
+  as `subtitles.<ext>`. FFmpeg runs with that folder as its working directory
+  (`run_ffmpeg(..., cwd=...)`, also accepted by `MediaProcessor.render*`) and reads the plain
+  relative name - so apostrophes, commas, brackets or `%` in the user's paths cannot break the
+  filter string. The user's file is only read.
+* Encoding detection: `charset_normalizer` (installed with `requests`), plus a Windows-1252
+  preference when it recognises no language and the text reads as normal Western text, and a
+  tie-break list of common subtitle code pages. The result message names a detected legacy
+  encoding so users can correct it.
+* Before encoding, `ffprobe` lists the cue start times: no cues, all cues after the end or (with
+  a timing adjustment) before the start are reported as input errors; cues outside the video
+  produce a warning.
+* Style: `SubtitleStyle.force_style()` builds libass overrides. FFmpeg applies them with the
+  classic SSA alignment numbers (2 = bottom centre, 6 = top centre); `Encoding=-1` gives
+  per-line text direction for right-to-left languages. ASS/SSA files keep their own styles
+  unless the user turns that off.
+* Timing adjustment without editing the file:
+  `setpts=PTS-(d)/TB,subtitles=...,setpts=PTS+(d)/TB` shifts only the time the filter sees.
+* Video is re-encoded (`video_encoder_args`, CRF 20); audio is copied, or re-encoded when the
+  container needs it; embedded subtitle streams are dropped (`-sn`).
+
+## 12. Update check (`app/services/updates.py`)
+
+* `check_for_update()` reads `GET https://api.github.com/repositories/<id>/releases/latest` -
+  the repository's permanent numeric id, so renaming or moving the repository does not break
+  it. Drafts and pre-releases are ignored, versions are compared numerically, and only release
+  pages under `https://github.com/` are accepted. No personal data or credentials are sent;
+  nothing is downloaded or installed.
+* `app/main.py` starts the check 4 s after the window opens, in the background, when
+  `Settings.check_updates` is on. `MainWindow` never checks by itself (tests and the self-test
+  therefore never contact GitHub). Automatic checks stay silent on errors and respect
+  "Skip this version" (`update_skipped_version`); **Settings → Updates → Check for updates
+  now** always reports its result.
+* Releasing: publish a GitHub Release whose tag is the new version (`v1.3.0`) and which is
+  neither a draft nor a pre-release - that is what the app sees as "latest".
+
+## 13. Testing strategy
 
 * Pure logic (split math, sorting, file names, time parsing, format parsing, download plans,
   URL/Content-Disposition handling) - plain unit tests.
@@ -243,9 +286,17 @@ setup steps to the key panel (`app/ui/pages/translate.py`).
   cancel, 120-page batching, original file unchanged), a local mock HTTP server for the Gemini
   client (request shape, every error mapping, retries, schema fallback), and a round trip through
   the real Windows Credential Manager under a throw-away name.
-* Packaged builds - `--self-test` (see `app/selftest.py`), run automatically by `build.py`.
+* Subtitles - real FFmpeg on a plain grey clip; letters are detected by counting bright/dark
+  pixels in the top or bottom band of extracted frames (position, box style, timing adjustment,
+  ASS/VTT, Unicode, awkward paths, errors, cancel). Encoding detection is tested on SRT text in
+  seven legacy code pages.
+* Update check - a local mock of the GitHub releases API (newer / same / older, drafts,
+  pre-releases, non-GitHub links, rate limit, bad answers, offline); GUI tests replace the
+  check and the browser call.
+* Packaged builds - `--self-test` (see `app/selftest.py`), run automatically by `build.py`;
+  it includes an offline translation check and a real subtitle burn with the bundled FFmpeg.
 
-## 12. Packaging notes
+## 14. Packaging notes
 
 * PyInstaller `--onedir` for the installer (fast start), `--onefile` for the portable EXE.
 * `ffmpeg.exe`/`ffprobe.exe` are added as *data* into `tools/` (skips PyInstaller's binary

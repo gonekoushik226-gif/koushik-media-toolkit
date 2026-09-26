@@ -92,6 +92,7 @@ class MediaProcessor:
         ctx: JobContext,
         expect: Expectation | None = None,
         progress_duration: float | None = None,
+        cwd: Path | None = None,
     ) -> MediaInfo:
         """Run FFmpeg into a temp file, verify it, then move it to ``output``
         (replacing an existing file - overwrite permission is checked before
@@ -101,7 +102,7 @@ class MediaProcessor:
         output.parent.mkdir(parents=True, exist_ok=True)
         tmp = temp_sibling(output)
         try:
-            run_ffmpeg(self.tools.ffmpeg, build(tmp), ctx, duration=progress_duration or expect.duration)
+            run_ffmpeg(self.tools.ffmpeg, build(tmp), ctx, duration=progress_duration or expect.duration, cwd=cwd)
             ctx.check_cancelled()
             ctx.set_progress(None, "Checking the result...")
             info = self.verify(tmp, expect)
@@ -120,6 +121,7 @@ class MediaProcessor:
         ctx: JobContext,
         status: str,
         progress_duration: float | None = None,
+        cwd: Path | None = None,
     ) -> tuple[MediaInfo, str]:
         """Try strategies in order (typically: stream copy, then re-encode).
         Returns the result and the label of the strategy that worked."""
@@ -129,7 +131,7 @@ class MediaProcessor:
         for number, attempt in enumerate(attempts):
             ctx.set_status(f"{status} ({attempt.label})" if len(attempts) > 1 else status)
             try:
-                info = self.render(output, attempt.build, ctx, attempt.expect, progress_duration)
+                info = self.render(output, attempt.build, ctx, attempt.expect, progress_duration, cwd)
                 return info, attempt.label
             except JobCancelled:
                 raise

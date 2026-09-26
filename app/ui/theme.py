@@ -81,6 +81,8 @@ def _stylesheet(c: dict[str, str]) -> str:
     QLabel#errorText {{ color: {c['danger']}; }}
     QLabel#successText {{ color: {c['success']}; }}
     QFrame#header {{ background: {c['surface']}; border-bottom: 1px solid {c['border']}; }}
+    QFrame#updateBanner {{ background: {c['card_hover']}; border-bottom: 1px solid {c['border']}; }}
+    QFrame#updateBanner QLabel {{ background: transparent; }}
     QFrame#statusArea {{ background: {c['surface']}; border-top: 1px solid {c['border']}; }}
     QFrame#panelCard {{ background: {c['surface']}; border: 1px solid {c['border']}; border-radius: 10px; }}
     QGroupBox {{ background: {c['surface']}; border: 1px solid {c['border']}; border-radius: 8px;

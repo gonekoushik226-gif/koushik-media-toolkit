@@ -99,6 +99,11 @@ def main(argv: list[str] | None = None) -> int:
     window = MainWindow(ctx, build_registry())
     _install_excepthook(window)
     window.show()
+    if ctx.settings.check_updates:
+        from PySide6.QtCore import QTimer
+
+        # A few seconds after start-up, in the background, so the window opens at full speed.
+        QTimer.singleShot(4000, lambda: window.check_for_updates(manual=False))
     code = app.exec()
     log.info("Exit code %s", code)
     return code

@@ -90,9 +90,12 @@ def build_command(ffmpeg: Path, args: list[str]) -> list[str]:
     ]
 
 
-def run_ffmpeg(ffmpeg: Path, args: list[str], ctx: JobContext, duration: float | None = None) -> None:
+def run_ffmpeg(ffmpeg: Path, args: list[str], ctx: JobContext, duration: float | None = None,
+               cwd: Path | None = None) -> None:
     """Run FFmpeg; report progress as a fraction of ``duration`` (seconds)
-    when given, otherwise as indeterminate. Raises ProcessingError/JobCancelled."""
+    when given, otherwise as indeterminate. ``cwd`` lets filters read helper
+    files by a plain relative name (no filter-path escaping needed).
+    Raises ProcessingError/JobCancelled."""
     cmd = build_command(ffmpeg, args)
     log.info("Running: %s", subprocess.list2cmdline(cmd))
     ctx.check_cancelled()
@@ -105,6 +108,7 @@ def run_ffmpeg(ffmpeg: Path, args: list[str], ctx: JobContext, duration: float |
             text=True,
             encoding="utf-8",
             errors="replace",
+            cwd=str(cwd) if cwd is not None else None,
             **hidden_subprocess_kwargs(),
         )
     except OSError as exc:

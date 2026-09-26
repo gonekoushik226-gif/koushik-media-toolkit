@@ -94,6 +94,40 @@ def run_self_test(output_file: str = "", network: bool = False, download_url: st
             raise RuntimeError("trimmed file is missing streams")
         return {"trimmed_duration": info.duration}
 
+    def subtitles() -> dict:
+        """Burn a subtitle into a plain grey clip with the bundled FFmpeg (libass
+        and system fonts) and check that letters really appear in the picture."""
+        import subprocess
+
+        from PIL import Image
+
+        from app.core.jobs import JobContext
+        from app.services.subtitles import SubtitleStyle
+        from app.services.tools import MediaTools, find_tool
+        from app.services.video import VideoService
+        from app.utils.system import hidden_subprocess_kwargs
+
+        ffmpeg, ffprobe = find_tool("ffmpeg").path, find_tool("ffprobe").path
+        quiet = {"check": True, "capture_output": True, **hidden_subprocess_kwargs()}
+        source = work / "plain.mp4"
+        subprocess.run([str(ffmpeg), "-hide_banner", "-loglevel", "error", "-y", "-f", "lavfi", "-i",
+                        "color=c=gray:size=320x180:rate=10:duration=2", "-c:v", "libx264", "-pix_fmt", "yuv420p",
+                        str(source)], **quiet)
+        subtitle = work / "self-test subtitles, 'v1'.srt"
+        subtitle.write_text("1\n00:00:00,200 --> 00:00:01,800\nSelf-test తెలుగు 日本語\n", encoding="utf-8")
+        output = work / "subtitled.mp4"
+        result = VideoService(MediaTools(ffmpeg, ffprobe)).burn_subtitles(source, subtitle, output, SubtitleStyle(),
+                                                                          JobContext())
+        frame = work / "subtitled.png"
+        subprocess.run([str(ffmpeg), "-hide_banner", "-loglevel", "error", "-y", "-ss", "1", "-i", str(output),
+                        "-frames:v", "1", str(frame)], **quiet)
+        with Image.open(frame) as image:
+            histogram = image.convert("L").crop((0, 120, 320, 180)).histogram()
+        text_pixels = sum(histogram[221:]) + sum(histogram[:40])
+        if text_pixels < 100:
+            raise RuntimeError(f"no subtitle text visible in the picture ({text_pixels} pixels)")
+        return {"message": result.message, "text_pixels": text_pixels}
+
     def pdf_and_images() -> dict:
         from PIL import Image
 
@@ -248,6 +282,7 @@ def run_self_test(output_file: str = "", network: bool = False, download_url: st
     check("libraries", libraries)
     check("tools", tools)
     check("media", media)
+    check("subtitles", subtitles)
     check("pdf_and_images", pdf_and_images)
     check("translation", translation)
     check("gui", gui)

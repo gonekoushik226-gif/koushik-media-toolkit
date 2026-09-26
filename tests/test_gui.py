@@ -407,3 +407,162 @@ def test_translate_image_folder_through_panel(window, qapp, dialogs, translate_d
     panel.action_button.click()
     wait_for_job(qapp, window)
     assert (tmp_path / "out" / "Manga Chapter 3 - English.pdf").exists() and not dialogs["error"]
+
+
+# ----------------------------------------------------------------------------
+# Burn in subtitles
+# ----------------------------------------------------------------------------
+SRT_TEXT = "1\n00:00:00,500 --> 00:00:02,000\nHello from the subtitle file\n"
+
+
+@pytest.mark.ffmpeg
+def test_burn_subtitles_through_panel(window, qapp, dialogs, sample_video, tmp_path):
+    import shutil
+
+    from app.services.ffmpeg.probe import probe
+
+    movie = tmp_path / "My Movie.mp4"
+    shutil.copy(sample_video, movie)
+    (tmp_path / "My Movie.srt").write_text(SRT_TEXT, encoding="utf-8")
+    window.navigate("video", "subtitles")
+    panel = window.page("video").panel("subtitles")
+    panel.picker.set_path(movie)
+    assert panel.subtitle.path() == tmp_path / "My Movie.srt"  # found automatically
+    assert panel.output.name.text() == "My Movie_subtitled"
+    panel.output.folder.setText(str(tmp_path / "out"))
+    panel.action_button.click()
+    wait_for_job(qapp, window)
+    output = tmp_path / "out" / "My Movie_subtitled.mp4"
+    assert output.exists() and not dialogs["error"], dialogs["error"]
+    info = probe(window.ctx.tools.media_tools().ffprobe, output)
+    assert info.has_video and info.has_audio
+    assert "1 subtitle(s) burned in" in window.status._detail.text()
+
+
+def test_burn_subtitles_needs_a_subtitle_file(window, qapp, dialogs, tmp_path):
+    video = tmp_path / "clip.mp4"
+    video.write_bytes(b"not really a video")
+    window.navigate("video", "subtitles")
+    panel = window.page("video").panel("subtitles")
+    panel.picker.set_path(video)
+    assert panel.subtitle.path() is None
+    panel.action_button.click()
+    assert dialogs["error"] and not window.ctx.jobs.busy
+
+
+def test_burn_subtitles_style_controls(window, qapp, dialogs, tmp_path):
+    window.navigate("video", "subtitles")
+    panel = window.page("video").panel("subtitles")
+    ass = tmp_path / "styled.ass"
+    ass.write_text("[Script Info]\n", encoding="utf-8")
+    srt = tmp_path / "plain.srt"
+    srt.write_text(SRT_TEXT, encoding="utf-8")
+    panel.subtitle.set_path(srt)
+    assert panel.size.isEnabled() and panel.keep_style.isHidden()
+    panel.subtitle.set_path(ass)
+    assert not panel.keep_style.isHidden() and not panel.size.isEnabled()  # the file's own style is kept
+    panel.keep_style.setChecked(False)
+    assert panel.size.isEnabled() and not panel.style().keep_file_style
+    panel.position.setCurrentIndex(panel.position.findData("top"))
+    assert "Alignment=6" in panel.style().force_style()
+
+
+def test_user_chosen_subtitle_is_not_replaced(window, qapp, dialogs, tmp_path):
+    window.navigate("video", "subtitles")
+    panel = window.page("video").panel("subtitles")
+    chosen = tmp_path / "chosen.srt"
+    chosen.write_text(SRT_TEXT, encoding="utf-8")
+    panel.subtitle.set_path(chosen)
+    video = tmp_path / "Film.mp4"
+    video.write_bytes(b"x")
+    (tmp_path / "Film.srt").write_text(SRT_TEXT, encoding="utf-8")
+    panel.picker.set_path(video)
+    assert panel.subtitle.path() == chosen
+
+
+# ----------------------------------------------------------------------------
+# Update notification (GitHub is never contacted: the check is replaced)
+# ----------------------------------------------------------------------------
+@pytest.fixture
+def fake_update(monkeypatch):
+    from app.services import updates
+
+    state = {"result": updates.UpdateInfo("9.9.9", "Media Toolkit 9.9.9",
+                                          "https://github.com/example/app/releases/tag/v9.9.9", "2030-01-01"),
+             "calls": 0, "opened": []}
+
+    def check(*args, **kwargs):
+        state["calls"] += 1
+        if isinstance(state["result"], Exception):
+            raise state["result"]
+        return state["result"]
+
+    monkeypatch.setattr(updates, "check_for_update", check)
+    from app.ui.widgets import update_banner
+
+    monkeypatch.setattr(update_banner.QDesktopServices, "openUrl", lambda url: state["opened"].append(url.toString())
+                        or True)
+    return state
+
+
+def test_update_banner_download_and_skip(window, qapp, dialogs, fake_update):
+    banner = window.update_banner
+    assert banner.isHidden() and fake_update["calls"] == 0  # creating the window never checks by itself
+    window.check_for_updates()
+    assert wait_until(qapp, lambda: not banner.isHidden(), 10)
+    assert "9.9.9" in banner.text.text()
+    banner.download.click()
+    assert fake_update["opened"] == ["https://github.com/example/app/releases/tag/v9.9.9"]
+    banner.skip.click()
+    assert banner.isHidden() and window.ctx.settings.update_skipped_version == "9.9.9"
+    window.check_for_updates()  # automatic check: a skipped version stays quiet
+    assert wait_until(qapp, lambda: fake_update["calls"] == 2, 10)
+    for _ in range(20):
+        qapp.processEvents()
+    assert banner.isHidden()
+    window.check_for_updates(manual=True)  # asked for explicitly: shown again
+    assert wait_until(qapp, lambda: not banner.isHidden(), 10)
+    banner.later.click()
+    assert banner.isHidden()
+
+
+def test_banner_only_opens_github(window, qapp, fake_update):
+    from app.services.updates import UpdateInfo
+
+    window.update_banner.show_update(UpdateInfo("9.9.9", "x", "https://evil.example.com/setup.exe", ""))
+    assert not window.update_banner.open_release_page() and not fake_update["opened"]
+
+
+def test_manual_check_reports_result(window, qapp, dialogs, fake_update, monkeypatch):
+    import app.ui.main_window as main_window_module
+    from app.services.updates import UpdateCheckError
+
+    fake_update["result"] = None
+    window.check_for_updates(manual=True)
+    assert wait_until(qapp, lambda: bool(dialogs["info"]), 10)
+    assert "latest version" in dialogs["info"][-1][2]
+    errors = []
+    monkeypatch.setattr(main_window_module, "show_error", lambda *a: errors.append(a))
+    fake_update["result"] = UpdateCheckError("Could not reach GitHub.")
+    window.check_for_updates(manual=False)  # automatic: failures stay quiet
+    assert wait_until(qapp, lambda: fake_update["calls"] == 2, 10)
+    for _ in range(20):
+        qapp.processEvents()
+    assert not errors
+    window.check_for_updates(manual=True)
+    assert wait_until(qapp, lambda: bool(errors), 10)
+
+
+def test_update_setting_and_check_button(window, qapp, dialogs, fake_update, monkeypatch):
+    import app.ui.pages.settings as settings_module
+
+    monkeypatch.setattr(settings_module, "show_info", lambda *a: None)
+    window.navigate("settings")
+    page = window.page("settings")
+    assert page.check_updates.isChecked()
+    page.check_updates.setChecked(False)
+    page._save()
+    assert window.ctx.settings.check_updates is False
+    page.check_now.click()
+    assert wait_until(qapp, lambda: not window.update_banner.isHidden(), 10)
+    assert page.check_now.isEnabled()

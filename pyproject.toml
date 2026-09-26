@@ -1,6 +1,6 @@
 [project]
 name = "media-toolkit"
-version = "1.1.0"
+version = "1.2.0"
 description = "Windows desktop toolkit for video, audio, image and PDF tasks"
 requires-python = ">=3.11"
 

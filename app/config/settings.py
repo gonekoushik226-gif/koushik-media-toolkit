@@ -65,6 +65,9 @@ class Settings:
     translation_doc_type: str = "auto"
     translation_model: str = ""  # empty = the provider's recommended model
     translation_sfx: bool = True  # also translate sound effects in comics (as small labels)
+    # Updates
+    check_updates: bool = True  # ask GitHub for a newer version when the app starts
+    update_skipped_version: str = ""  # "Skip this version" was chosen for this version
     # Advanced
     ffmpeg_path: str = ""  # empty = automatic (bundled copy, then PATH)
     ffprobe_path: str = ""

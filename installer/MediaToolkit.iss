@@ -1,9 +1,9 @@
 ; Inno Setup script for Media Toolkit.
 ; Normally compiled by build.py, which passes AppVersion / SourceDir / OutputDir.
-; Manual compile:  ISCC.exe /DAppVersion=1.1.0 installer\MediaToolkit.iss
+; Manual compile:  ISCC.exe /DAppVersion=1.2.0 installer\MediaToolkit.iss
 
 #ifndef AppVersion
-  #define AppVersion "1.1.0"
+  #define AppVersion "1.2.0"
 #endif
 #ifndef SourceDir
   #define SourceDir "..\dist\MediaToolkit"
@@ -29,6 +29,11 @@ VersionInfoDescription={#AppName} Setup
 ; the first wizard page lets the user choose "install for all users" instead.
 PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog commandline
+; A new version always replaces the installed one - never a second copy: reuse the previous
+; install mode (just me / all users), folder and choices of an earlier version.
+UsePreviousPrivileges=yes
+UsePreviousAppDir=yes
+UsePreviousTasks=yes
 DefaultDirName={autopf}\{#AppName}
 DefaultGroupName={#AppName}
 DisableProgramGroupPage=yes

@@ -8,15 +8,16 @@ from PySide6.QtCore import QByteArray
 from PySide6.QtGui import QIcon, QKeySequence, QShortcut
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QMainWindow, QPushButton, QStackedWidget, QVBoxLayout, QWidget
 
-from app import APP_NAME
+from app import APP_NAME, __version__
 from app.config.paths import asset_path
 from app.core.errors import AppError
 from app.core.registry import ModuleRegistry
 from app.ui import icons, theme
 from app.ui.dialogs import confirm, show_error
 from app.ui.home import HomePage
-from app.ui.jobs import JobController
+from app.ui.jobs import JobController, run_in_background
 from app.ui.widgets.status_area import StatusArea
+from app.ui.widgets.update_banner import UpdateBanner
 
 log = logging.getLogger(__name__)
 
@@ -55,6 +56,9 @@ class MainWindow(QMainWindow):
         header_layout.addWidget(self.page_title)
         header_layout.addStretch(1)
         layout.addWidget(header)
+        self.update_banner = UpdateBanner()
+        self.update_banner.skipped.connect(self._skip_version)
+        layout.addWidget(self.update_banner)
 
         self.stack = QStackedWidget()
         layout.addWidget(self.stack, 1)
@@ -107,6 +111,36 @@ class MainWindow(QMainWindow):
 
     def page(self, key: str) -> QWidget | None:
         return self._pages.get(key)
+
+    # -- updates -------------------------------------------------------------
+    def check_for_updates(self, manual: bool = False, on_finished=None) -> None:
+        """Ask GitHub (in the background) whether a newer version exists. An
+        automatic check stays silent unless there is news; a manual one always
+        reports its result."""
+        from app.services.updates import check_for_update
+
+        def done(info) -> None:
+            if info is not None and (manual or info.version != self.ctx.settings.update_skipped_version):
+                self.update_banner.show_update(info)
+            elif manual:
+                from app.ui.dialogs import show_info
+
+                show_info(self, "No update available", f"You have the latest version of {APP_NAME} ({__version__}).")
+            if on_finished:
+                on_finished(info)
+
+        def failed(exc: BaseException) -> None:
+            log.info("Update check failed: %s", exc)
+            if manual:
+                show_error(self, exc)
+            if on_finished:
+                on_finished(None)
+
+        run_in_background(check_for_update, done, failed, owner=self)
+
+    def _skip_version(self, version: str) -> None:
+        self.ctx.settings.update_skipped_version = version
+        self.ctx.save_settings()
 
     # -- window state --------------------------------------------------------
     def _restore_geometry(self) -> None:
