@@ -1,4 +1,4 @@
-"""Build Koushik Media Toolkit for Windows.
+"""Build Media Toolkit for Windows.
 
     .venv\\Scripts\\python.exe build.py            # tests, portable EXE, installer
     .venv\\Scripts\\python.exe build.py --help     # options
@@ -6,9 +6,9 @@
 Steps
   1. Run the automated tests (skip with --skip-tests).
   2. Collect ffmpeg.exe / ffprobe.exe into vendor/ffmpeg (from --ffmpeg-dir,
-     the KMT_FFMPEG_DIR environment variable, or the PATH).
-  3. PyInstaller "one folder" build  -> dist/KoushikMediaToolkit/  (used by the installer)
-  4. PyInstaller "one file" build    -> dist/KoushikMediaToolkit-Portable.exe
+     the MEDIA_TOOLKIT_FFMPEG_DIR environment variable, or the PATH).
+  3. PyInstaller "one folder" build  -> dist/MediaToolkit/  (used by the installer)
+  4. PyInstaller "one file" build    -> dist/MediaToolkit-Portable.exe
   5. Run the packaged self-test (--self-test) on both builds.
   6. Compile the Inno Setup installer (needs Inno Setup 6: winget install JRSoftware.InnoSetup).
   7. Copy the results to release/ and write SHA256 checksums.
@@ -35,7 +35,7 @@ DIST = ROOT / "dist"
 BUILD = ROOT / "build"
 RELEASE = ROOT / "release"
 VENDOR = ROOT / "vendor" / "ffmpeg"
-ISS = ROOT / "installer" / "KoushikMediaToolkit.iss"
+ISS = ROOT / "installer" / "MediaToolkit.iss"
 
 # Modules that PyInstaller might pull in but the app never uses.
 EXCLUDES = [
@@ -61,7 +61,7 @@ def ensure_ffmpeg(ffmpeg_dir: str | None) -> None:
     if (VENDOR / "ffmpeg.exe").is_file() and (VENDOR / "ffprobe.exe").is_file() and not ffmpeg_dir:
         print(f"Using FFmpeg already in {VENDOR}")
         return
-    source = ffmpeg_dir or os.environ.get("KMT_FFMPEG_DIR")
+    source = ffmpeg_dir or os.environ.get("MEDIA_TOOLKIT_FFMPEG_DIR")
     if source:
         folder = Path(source)
     else:

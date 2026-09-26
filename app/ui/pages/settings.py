@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
 from app.config import paths
 from app.config.settings import Settings
 from app.services.downloads.plans import AUDIO_TARGETS
+from app.services.translation.languages import LANGUAGES
 from app.ui.dialogs import confirm, show_info
 from app.ui.widgets.common import combo, hint, primary_button
 from app.utils.system import open_path
@@ -79,6 +80,23 @@ class SettingsPage(QWidget):
         self.pdf_dpi.setRange(36, 600)
         self.pdf_dpi.setSuffix(" DPI")
         pdf.addRow("Default image resolution:", self.pdf_dpi)
+
+        translation = self._group(layout, "AI translation")
+        self.translation_target = combo({lang.code: lang.label for lang in LANGUAGES})
+        translation.addRow("Translate into:", self.translation_target)
+        translation_row = QHBoxLayout()
+        key_button = QPushButton("API key...")
+        key_button.setToolTip("Enter, test, replace or remove your own AI API key")
+        key_button.clicked.connect(lambda: self.ctx.navigate("translate", "key"))
+        clear_progress = QPushButton("Clear saved translation progress")
+        clear_progress.setToolTip("Forget pages translated by runs that did not finish")
+        clear_progress.clicked.connect(self._clear_translation_progress)
+        translation_row.addWidget(key_button)
+        translation_row.addWidget(clear_progress)
+        translation_row.addStretch(1)
+        translation.addRow("", self._wrap(translation_row))
+        translation.addRow("", hint("Translation uses your own Google Gemini API key. The key is kept in Windows "
+                                    "Credential Manager, not in the settings file."))
 
         advanced = self._group(layout, "Advanced")
         advanced.addRow("", hint("Leave these empty to use the programs included with the application."))
@@ -186,6 +204,7 @@ class SettingsPage(QWidget):
         self._select(self.audio_bitrate, s.audio_bitrate)
         self.pdf_name.setText(s.pdf_default_name)
         self.pdf_dpi.setValue(s.pdf_dpi)
+        self._select(self.translation_target, s.translation_target)
         self.ffmpeg.setText(s.ffmpeg_path)
         self.ffprobe.setText(s.ffprobe_path)
         self.ytdlp.setText(s.ytdlp_path)
@@ -213,6 +232,7 @@ class SettingsPage(QWidget):
             audio_bitrate=self.audio_bitrate.currentData(),
             pdf_default_name=self.pdf_name.text().strip() or "combined",
             pdf_dpi=self.pdf_dpi.value(),
+            translation_target=self.translation_target.currentData(),
             ffmpeg_path=self.ffmpeg.text().strip().strip('"'),
             ffprobe_path=self.ffprobe.text().strip().strip('"'),
             ytdlp_path=self.ytdlp.text().strip().strip('"'),
@@ -240,3 +260,13 @@ class SettingsPage(QWidget):
             fresh = Settings(window_geometry=geometry)
             self.ctx.replace_settings(fresh)
             self.load()
+
+    def _clear_translation_progress(self) -> None:
+        if confirm(self, "Clear translation progress",
+                   "Forget the pages that were already translated by runs that did not finish?\n\n"
+                   "Running those translations again will then start from the beginning (and use your API quota "
+                   "again).", "Clear"):
+            from app.services.translation.job import clear_cache
+
+            clear_cache()
+            show_info(self, "Translation progress cleared", "Saved translation progress was removed.")

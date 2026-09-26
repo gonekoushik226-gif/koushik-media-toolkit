@@ -34,6 +34,12 @@ def _pdf(ctx):
     return build_pdf_page(ctx)
 
 
+def _translate(ctx):
+    from app.ui.pages.translate import build_translate_page
+
+    return build_translate_page(ctx)
+
+
 def _download(ctx):
     from app.ui.pages.downloads import DownloadHubPage
 
@@ -63,6 +69,8 @@ def build_registry() -> ModuleRegistry:
                    "into a PDF.", "image", _images, GROUP_MAIN, 30),
         ModuleSpec("pdf", "PDF", "Create PDFs from images, merge, split, download, or save pages as images.",
                    "pdf", _pdf, GROUP_MAIN, 40),
+        ModuleSpec("translate", "TRANSLATE", "Translate PDFs, books, scans, manga, comics and webtoons with AI, "
+                   "using your own API key.", "translate", _translate, GROUP_MAIN, 45),
         ModuleSpec("download", "DOWNLOAD", "Download video, audio or a PDF from a link.", "download", _download,
                    GROUP_UTILITY, 50),
         ModuleSpec("settings", "SETTINGS", "Folders, preferred formats, theme and advanced options.", "settings",

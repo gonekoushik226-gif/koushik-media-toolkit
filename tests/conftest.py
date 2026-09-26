@@ -22,8 +22,8 @@ FIXTURES = Path(__file__).parent / "fixtures"
 @pytest.fixture(autouse=True)
 def isolated_data_dir(tmp_path_factory, monkeypatch):
     """Keep settings/logs/caches of the test run away from the real profile."""
-    data = tmp_path_factory.mktemp("kmt-data")
-    monkeypatch.setenv("KMT_DATA_DIR", str(data))
+    data = tmp_path_factory.mktemp("mt-data")
+    monkeypatch.setenv("MEDIA_TOOLKIT_DATA_DIR", str(data))
     return data
 
 

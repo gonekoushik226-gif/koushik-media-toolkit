@@ -16,6 +16,7 @@ from dataclasses import asdict, dataclass, fields
 from pathlib import Path
 
 from app.config import paths
+from app.services.translation.languages import LANGUAGES
 
 log = logging.getLogger(__name__)
 
@@ -30,6 +31,9 @@ CHOICES: dict[str, tuple] = {
     "video_quality": ("best", "2160", "1440", "1080", "720", "480", "360"),
     "audio_format": ("original", "mp3", "m4a", "wav", "flac", "opus"),
     "audio_bitrate": (96, 128, 160, 192, 256, 320),
+    "translation_target": tuple(lang.code for lang in LANGUAGES),
+    "translation_source": ("",) + tuple(lang.code for lang in LANGUAGES),  # "" = detect automatically
+    "translation_doc_type": ("auto", "text", "comic", "scan"),
 }
 RANGES: dict[str, tuple[int, int]] = {"pdf_dpi": (36, 600)}
 
@@ -55,6 +59,12 @@ class Settings:
     # PDF
     pdf_default_name: str = "combined"
     pdf_dpi: int = 150
+    # AI translation (the API key itself is never stored here - see app/config/credentials.py)
+    translation_target: str = "en"
+    translation_source: str = ""
+    translation_doc_type: str = "auto"
+    translation_model: str = ""  # empty = the provider's recommended model
+    translation_sfx: bool = True  # also translate sound effects in comics (as small labels)
     # Advanced
     ffmpeg_path: str = ""  # empty = automatic (bundled copy, then PATH)
     ffprobe_path: str = ""

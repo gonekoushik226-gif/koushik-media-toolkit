@@ -29,13 +29,15 @@ class CreatePdfPanel(OperationPanel):
     key = "create"
     title = "Create PDF from images"
     description = ("Combine images into one PDF - one image per page, in the order of the list. Photos are turned "
-                   "the right way up automatically. Unmodified JPG and PNG images are embedded without quality loss.")
+                   "the right way up automatically. Unmodified JPG and PNG images are embedded without quality loss. "
+                   "When you add a folder, the PDF gets the folder's name (for example 'Chapter 01.pdf').")
     action_text = "Create PDF"
 
     def build(self) -> None:
         self.files = FileListWidget(self.ctx, IMAGE_EXTENSIONS, IMAGE_FILTER, noun="image", allow_folder=True,
                                     sort_keys=IMAGE_SORT_KEYS, allow_shuffle=True, date_taken=image_date_taken)
         self.files.changed.connect(self._files_changed)
+        self.files.folder_added.connect(self._folder_added)
         self.body.addWidget(self.files, 1)
         _, form = self.form_group("Pages")
         self.page_size = combo(pdf_service.PAGE_SIZE_LABELS, "image")
@@ -53,6 +55,10 @@ class CreatePdfPanel(OperationPanel):
         paths = self.files.paths()
         if paths:
             self.output.suggest_folder(self.ctx.output_dir_for(paths[0]))
+
+    def _folder_added(self, folder: Path) -> None:
+        # The PDF is named after the folder of images (e.g. "My Comic Chapter 01.pdf").
+        self.output.suggest_name(pdf_service.pdf_name_for_folder(folder), force=True)
 
     def run(self) -> None:
         paths = self.files.paths()

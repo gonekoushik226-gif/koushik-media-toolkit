@@ -76,6 +76,9 @@ class ImagesPage(QWidget):
         self.files.list.itemDoubleClicked.connect(lambda item: open_path(item.data(Qt.ItemDataRole.UserRole)))
         self.files.changed.connect(self._files_changed)
         self.files.current_changed.connect(self._current_changed)
+        # A PDF made from a folder of images is named after that folder.
+        self.files.folder_added.connect(
+            lambda folder: self.pdf_output.suggest_name(pdf_service.pdf_name_for_folder(folder), force=True))
 
         self.preview = ImagePreview()
         self.preview.selection_changed.connect(self._selection_changed)

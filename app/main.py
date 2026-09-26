@@ -31,7 +31,7 @@ def _set_app_user_model_id() -> None:
     try:
         import ctypes
 
-        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(f"{APP_PUBLISHER}.{APP_ID}")
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(f"{APP_ID}.Desktop")
     except (AttributeError, OSError):
         pass
 

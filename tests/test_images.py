@@ -128,7 +128,7 @@ class TestLoadAndSave:
     def test_no_partial_files_left(self, image_factory, tmp_path):
         loaded = svc.load_image(image_factory("a.png"))
         svc.save_image(loaded.image, tmp_path / "ok.png")
-        assert not [p for p in tmp_path.iterdir() if "kmt-partial" in p.name]
+        assert not [p for p in tmp_path.iterdir() if "mt-partial" in p.name]
 
 
 class TestBatch:

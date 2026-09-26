@@ -66,6 +66,7 @@ class DropListWidget(QListWidget):
 class FileListWidget(QWidget):
     changed = Signal()
     current_changed = Signal(object)  # Path | None
+    folder_added = Signal(object)  # Path of a folder whose files were just added
 
     def __init__(
         self,
@@ -238,25 +239,34 @@ class FileListWidget(QWidget):
         if not folder:
             return
         self.ctx.remember_dir(folder)
+        self.add_folder(Path(folder))
+
+    def add_folder(self, folder: Path) -> int:
+        """Add every supported file in ``folder`` in natural order (2 before 10)
+        and announce the folder via ``folder_added``. Returns how many were added."""
+        folder = Path(folder)
         found = sorted(
-            (p for p in Path(folder).iterdir() if p.is_file() and p.suffix.lower() in self._extensions),
+            (p for p in folder.iterdir() if p.is_file() and p.suffix.lower() in self._extensions),
             key=lambda p: natural_key(p.name),
         )
         if not found:
             from app.ui.dialogs import show_info
 
             show_info(self, "Nothing found", f"The folder does not contain any supported {self._noun}s.")
-            return
-        self.add_paths(found)
+            return 0
+        added = self.add_paths(found)
+        self.folder_added.emit(folder)
+        return added
 
     def _on_dropped(self, paths: list[Path]) -> None:
-        expanded: list[Path] = []
+        files: list[Path] = []
         for path in paths:
             if path.is_dir():
-                expanded.extend(sorted((p for p in path.iterdir() if p.is_file()), key=lambda p: natural_key(p.name)))
+                self.add_folder(path)
             else:
-                expanded.append(path)
-        self.add_paths(expanded)
+                files.append(path)
+        if files:
+            self.add_paths(files)
 
     def remove_selected(self) -> None:
         for item in self.list.selectedItems():

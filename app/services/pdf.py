@@ -22,7 +22,7 @@ from app.core.errors import InvalidInputError, ProcessingError
 from app.core.jobs import JobContext
 from app.models.results import JobResult
 from app.services.images import READ_ERRORS, ImageEdits, apply_edits, normalize_mode
-from app.utils.filenames import numbered_names, temp_sibling
+from app.utils.filenames import numbered_names, sanitize_filename, temp_sibling
 from app.utils.units import human_size
 
 log = logging.getLogger(__name__)
@@ -377,6 +377,16 @@ def pdf_to_images(source: Path, output_dir: Path, prefix: str, image_format: str
 # ----------------------------------------------------------------------------
 # Images -> PDF
 # ----------------------------------------------------------------------------
+def pdf_name_for_folder(folder: Path, fallback: str = "images") -> str:
+    """File name (without ".pdf") for a PDF made from a folder of images: the
+    folder's own name. Spaces, numbers and any language are kept; only
+    characters Windows does not allow in file names are replaced (with "_"),
+    and very long names are shortened to stay within Windows path limits."""
+    folder = Path(folder)
+    name = folder.name or folder.drive.rstrip(":\\/")  # a drive root such as "D:\" has no name
+    return sanitize_filename(name, fallback=fallback)
+
+
 @dataclass
 class ImageSource:
     path: Path

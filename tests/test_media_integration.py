@@ -28,7 +28,7 @@ def info_of(media_tools, path):
 
 
 def no_leftovers(folder):
-    return not [p for p in folder.iterdir() if "kmt-partial" in p.name]
+    return not [p for p in folder.iterdir() if "mt-partial" in p.name]
 
 
 class TestVideo:

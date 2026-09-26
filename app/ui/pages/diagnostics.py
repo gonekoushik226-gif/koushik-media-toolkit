@@ -83,7 +83,12 @@ class DiagnosticsPage(QWidget):
             self.run_button.setEnabled(True)
             self.details.setText(f"The checks could not be completed: {exc}")
 
-        run_in_background(lambda: run_diagnostics(settings, locator, include_network, qt), done, failed, owner=self)
+        try:
+            key_status = self.ctx.key_manager().status()  # masked; never the whole key
+        except Exception:  # noqa: BLE001 - diagnostics must still run
+            key_status = "Could not read the API key status"
+        run_in_background(lambda: run_diagnostics(settings, locator, include_network, qt, key_status), done, failed,
+                          owner=self)
 
     def _show(self, checks: list[Check]) -> None:
         self._checks = checks

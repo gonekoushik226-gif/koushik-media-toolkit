@@ -1,4 +1,4 @@
-"""Home screen: the four main modules as cards plus utility buttons."""
+"""Home screen: the main modules as cards plus utility buttons."""
 
 from __future__ import annotations
 
@@ -49,17 +49,19 @@ class HomePage(QWidget):
         layout.setSpacing(18)
         title = QLabel(APP_NAME)
         title.setObjectName("appTitle")
-        subtitle = QLabel("Everyday video, audio, image and PDF tasks in one place.")
+        subtitle = QLabel("Everyday video, audio, image, PDF and translation tasks in one place.")
         subtitle.setObjectName("appSubtitle")
         layout.addWidget(title)
         layout.addWidget(subtitle)
 
         grid = QGridLayout()
         grid.setSpacing(18)
-        for index, spec in enumerate(registry.specs(GROUP_MAIN)):
+        specs = registry.specs(GROUP_MAIN)
+        columns = 2 if len(specs) <= 4 else 3
+        for index, spec in enumerate(specs):
             card = ModuleCard(icons.pixmap(spec.icon, accent, 40), spec.title, spec.description)
             card.clicked.connect(lambda _=False, key=spec.key: ctx.navigate(key))
-            grid.addWidget(card, index // 2, index % 2)
+            grid.addWidget(card, index // columns, index % columns)
         layout.addLayout(grid, 1)
 
         row = QHBoxLayout()

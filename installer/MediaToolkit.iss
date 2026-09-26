@@ -1,19 +1,19 @@
-; Inno Setup script for Koushik Media Toolkit.
+; Inno Setup script for Media Toolkit.
 ; Normally compiled by build.py, which passes AppVersion / SourceDir / OutputDir.
-; Manual compile:  ISCC.exe /DAppVersion=1.0.0 installer\KoushikMediaToolkit.iss
+; Manual compile:  ISCC.exe /DAppVersion=1.1.0 installer\MediaToolkit.iss
 
 #ifndef AppVersion
-  #define AppVersion "1.0.0"
+  #define AppVersion "1.1.0"
 #endif
 #ifndef SourceDir
-  #define SourceDir "..\dist\KoushikMediaToolkit"
+  #define SourceDir "..\dist\MediaToolkit"
 #endif
 #ifndef OutputDir
   #define OutputDir "..\release"
 #endif
-#define AppName "Koushik Media Toolkit"
-#define AppPublisher "Koushik"
-#define AppExe "KoushikMediaToolkit.exe"
+#define AppName "Media Toolkit"
+#define AppPublisher "Media Toolkit"
+#define AppExe "MediaToolkit.exe"
 
 [Setup]
 ; Never change AppId: Windows uses it to recognise upgrades and the uninstall entry.
@@ -33,7 +33,7 @@ DefaultDirName={autopf}\{#AppName}
 DefaultGroupName={#AppName}
 DisableProgramGroupPage=yes
 OutputDir={#OutputDir}
-OutputBaseFilename=KoushikMediaToolkit-{#AppVersion}-Setup
+OutputBaseFilename=MediaToolkit-{#AppVersion}-Setup
 SetupIconFile=..\assets\app.ico
 UninstallDisplayIcon={app}\{#AppExe}
 UninstallDisplayName={#AppName}
@@ -56,12 +56,17 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 [InstallDelete]
 ; Remove the previous version's runtime files before an upgrade (settings are kept in AppData).
 Type: filesandordirs; Name: "{app}\_internal"
+; Version 1.0.0 used a longer product name. When upgrading, remove its executable and shortcuts
+; (matched by the common "MediaToolkit" / " Media Toolkit" ending).
+Type: files; Name: "{app}\*MediaToolkit.exe"
+Type: files; Name: "{autoprograms}\* Media Toolkit.lnk"
+Type: files; Name: "{autodesktop}\* Media Toolkit.lnk"
 
 [Files]
 Source: "{#SourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{autoprograms}\{#AppName}"; Filename: "{app}\{#AppExe}"; Comment: "Video, audio, image and PDF tools"
+Name: "{autoprograms}\{#AppName}"; Filename: "{app}\{#AppExe}"; Comment: "Video, audio, image, PDF and AI translation tools"
 Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExe}"; Tasks: desktopicon
 
 [Run]

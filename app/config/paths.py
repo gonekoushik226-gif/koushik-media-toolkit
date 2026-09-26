@@ -4,12 +4,12 @@ Everything that depends on whether we run from source or from a PyInstaller
 bundle is decided here, so the rest of the code never has to check.
 
 Data locations:
-  * Normal install: settings in %APPDATA%\\KoushikMediaToolkit,
-    logs in %LOCALAPPDATA%\\KoushikMediaToolkit\\logs.
+  * Normal install: settings in %APPDATA%\\MediaToolkit,
+    logs in %LOCALAPPDATA%\\MediaToolkit\\logs.
   * Portable mode: if a file named ``portable.txt`` or a folder named
-    ``KoushikMediaToolkit-data`` sits next to the EXE, everything is kept
+    ``MediaToolkit-data`` sits next to the EXE, everything is kept
     in that folder instead.
-  * ``KMT_DATA_DIR`` (environment variable) overrides both; used by tests.
+  * ``MEDIA_TOOLKIT_DATA_DIR`` (environment variable) overrides both; used by tests.
 """
 
 from __future__ import annotations
@@ -70,7 +70,7 @@ def _env_dir(name: str, fallback: Path) -> Path:
 
 def data_dir() -> Path:
     """Folder for settings.json (created on demand)."""
-    override = os.environ.get("KMT_DATA_DIR")
+    override = os.environ.get("MEDIA_TOOLKIT_DATA_DIR")
     if override:
         base = Path(override)
     elif (portable := portable_data_dir()) is not None:
@@ -83,7 +83,7 @@ def data_dir() -> Path:
 
 def log_dir() -> Path:
     """Folder for log files (created on demand)."""
-    override = os.environ.get("KMT_DATA_DIR")
+    override = os.environ.get("MEDIA_TOOLKIT_DATA_DIR")
     if override:
         folder = Path(override) / "logs"
     elif (portable := portable_data_dir()) is not None:

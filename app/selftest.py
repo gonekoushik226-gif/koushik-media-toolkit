@@ -1,4 +1,4 @@
-"""Built-in self-test: ``KoushikMediaToolkit.exe --self-test --self-test-output report.json``.
+"""Built-in self-test: ``MediaToolkit.exe --self-test --self-test-output report.json``.
 
 Used by build.py to verify that a *packaged* build really works (Qt plugins,
 bundled FFmpeg, PDF/image libraries, yt-dlp). Everything runs offline in a
@@ -25,8 +25,8 @@ def run_self_test(output_file: str = "", network: bool = False, download_url: st
     """``network`` adds an HTTPS check and a metadata-only yt-dlp analysis of a
     public video. ``download_url`` analyses and downloads that link (use a
     local test server) to exercise the full download + merge path."""
-    work = Path(tempfile.mkdtemp(prefix="kmt-selftest-"))
-    os.environ["KMT_DATA_DIR"] = str(work / "data")
+    work = Path(tempfile.mkdtemp(prefix="mt-selftest-"))
+    os.environ["MEDIA_TOOLKIT_DATA_DIR"] = str(work / "data")
     os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
     from app.config import paths
 
@@ -126,7 +126,11 @@ def run_self_test(output_file: str = "", network: bool = False, download_url: st
         app = QApplication.instance() or QApplication([sys.argv[0]])
         apply_theme(app, "light")
         store = SettingsStore(work / "data" / "settings.json")
-        ctx = AppContext(settings=Settings(), store=store, tools=None)  # type: ignore[arg-type]
+        from app.config.credentials import MemorySecretStore
+        from app.services.translation.keys import ApiKeyManager
+
+        ctx = AppContext(settings=Settings(), store=store, tools=None,  # type: ignore[arg-type]
+                         api_keys=ApiKeyManager(MemorySecretStore()))  # never touch the user's saved key
         ctx.tools = ToolLocator(lambda: ctx.settings)
         registry = build_registry()
         window = MainWindow(ctx, registry)
@@ -146,6 +150,62 @@ def run_self_test(output_file: str = "", network: bool = False, download_url: st
         formats = sorted(bytes(f).decode() for f in QImageReader.supportedImageFormats())
         window.close()
         return {"pages": opened, "image_formats": formats}
+
+    def translation() -> dict:
+        """Offline: the translation pipeline with a stand-in provider (no key, no
+        network), complex-script fonts, and the Windows credential store."""
+        import uuid
+
+        import pymupdf
+
+        from app.config.credentials import default_store
+        from app.core.jobs import JobContext
+        from app.services.translation import job as tjob
+        from app.services.translation.languages import get_language
+        from app.services.translation.provider import ModelInfo, TranslationProvider
+
+        class Offline(TranslationProvider):
+            name = "offline self-test"
+
+            def list_models(self, ctx=None):
+                return [ModelInfo("offline", "offline")]
+
+            def translate_segments(self, segments, target, source, context, ctx):
+                return {s["id"]: "తెలుగు अनुवाद 日本語 " + s["id"] for s in segments}
+
+            def analyze_image(self, image, mime_type, target, source, doc_type, include_sfx, ctx):
+                return [{"box": (0.1, 0.1, 0.6, 0.3), "kind": "dialogue", "original": "x", "translation": "Hello"}]
+
+        source = work / "translate-source.pdf"
+        doc = pymupdf.open()
+        page = doc.new_page()
+        page.insert_textbox(pymupdf.Rect(72, 72, 520, 300), "A paragraph of plain English text for the offline "
+                            "translation self-test, long enough to count as a text page.", fontsize=12)
+        picture = doc.new_page(width=300, height=400)
+        picture.draw_rect(picture.rect, fill=(0.6, 0.7, 0.8))
+        doc.save(str(source))
+        doc.close()
+        output = work / "translate-output.pdf"
+        request = tjob.TranslationRequest(source, output, get_language("te"), model="offline")
+        tjob.translate_document(request, Offline(), JobContext(), cache_dir=work / "translate-cache")
+        with pymupdf.open(str(output)) as result:
+            text = result[0].get_text()
+            fonts = sorted({f[3] for f in result[0].get_fonts()})
+            # (Some shaped Indic ligatures do not extract back to the same characters, so Telugu is
+            # checked through its embedded font; Devanagari and CJK extract cleanly.)
+            if "अनुवाद" not in text or "日本語" not in text or "Hello" not in result[1].get_text():
+                raise RuntimeError("translated text is missing from the output")
+            if not any("Telugu" in font for font in fonts):
+                raise RuntimeError(f"no Telugu font was embedded (fonts: {fonts})")
+        store = default_store()
+        name = f"self-test {uuid.uuid4().hex}"
+        store.set(name, "not-a-real-key")
+        try:
+            if store.get(name) != "not-a-real-key":
+                raise RuntimeError("credential store round trip failed")
+        finally:
+            store.delete(name)
+        return {"fonts": fonts, "credential_store": store.description}
 
     def internet() -> dict:
         from app.services.diagnostics import OK, _internet_check
@@ -189,6 +249,7 @@ def run_self_test(output_file: str = "", network: bool = False, download_url: st
     check("tools", tools)
     check("media", media)
     check("pdf_and_images", pdf_and_images)
+    check("translation", translation)
     check("gui", gui)
     if network:
         check("internet_https", internet)

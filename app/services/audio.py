@@ -166,7 +166,7 @@ class AudioService:
         layout = "mono" if (first.channels or 2) == 1 else "stereo"
         signatures = {(i.primary_audio.codec, i.primary_audio.sample_rate, i.primary_audio.channels) for i in infos}  # type: ignore[union-attr]
         same_format = len(signatures) == 1 and all(len(i.audio_streams) == 1 for i in infos)
-        workdir = Path(tempfile.mkdtemp(prefix="kmt-merge-"))
+        workdir = Path(tempfile.mkdtemp(prefix="mt-merge-"))
         try:
             list_file = workdir / "list.txt"
             list_file.write_text(concat_list_text(sources), encoding="utf-8")

@@ -65,7 +65,7 @@ class TestMerge:
         out = tmp_path / "out.pdf"
         with pytest.raises(InvalidInputError, match="bad.pdf"):
             svc.merge_pdfs([pdf_factory(), bad], out, JobContext())
-        assert not out.exists() and not [p for p in tmp_path.iterdir() if "kmt-partial" in p.name]
+        assert not out.exists() and not [p for p in tmp_path.iterdir() if "mt-partial" in p.name]
 
     def test_encrypted_with_empty_password_uses_fallback(self, pdf_factory, tmp_path):
         import pymupdf

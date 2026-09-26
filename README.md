@@ -1,12 +1,12 @@
 <p align="center">
-  <img src="assets/app.png" width="96" alt="Koushik Media Toolkit icon">
+  <img src="assets/app.png" width="96" alt="Media Toolkit icon">
 </p>
 
-<h1 align="center">Koushik Media Toolkit</h1>
+<h1 align="center">Media Toolkit</h1>
 
 <p align="center">
-  One simple Windows app for everyday <b>video</b>, <b>audio</b>, <b>image</b> and <b>PDF</b> jobs.<br>
-  Download from websites · trim · merge · convert · compress · crop · reorder · make, merge and split PDFs
+  One simple Windows app for everyday <b>video</b>, <b>audio</b>, <b>image</b> and <b>PDF</b> jobs - and <b>AI translation</b> of books, scans, manga and comics.<br>
+  Download from websites · trim · merge · convert · compress · crop · reorder · make, merge and split PDFs · translate PDFs
 </p>
 
 <p align="center">
@@ -27,12 +27,13 @@ Go to the [**latest release**](../../releases/latest) and pick one file:
 
 | File | Choose it if you want |
 |---|---|
-| `KoushikMediaToolkit-1.0.0-Setup.exe` (≈130 MB) | A normal installed app: Start Menu entry, optional desktop shortcut, uninstall from *Settings → Apps*. Opens in about a second. **Recommended.** |
-| `KoushikMediaToolkit-1.0.0-Portable.exe` (≈180 MB) | A single file you can run from any folder or USB stick, without installing. Takes about 5 seconds to open. |
+| `MediaToolkit-1.1.0-Setup.exe` (≈130 MB) | A normal installed app: Start Menu entry, optional desktop shortcut, uninstall from *Settings → Apps*. Opens in about a second. **Recommended.** |
+| `MediaToolkit-1.1.0-Portable.exe` (≈180 MB) | A single file you can run from any folder or USB stick, without installing. Takes about 5 seconds to open. |
 
 * The installer does **not** need administrator rights (it installs for your user; you can choose "all users" on the first page).
 * **"Windows protected your PC"?** The app is not code-signed yet, so SmartScreen may warn the first time. Click **More info → Run anyway**.
 * Each release includes `SHA256SUMS.txt` so you can check the download (`Get-FileHash <file>` in PowerShell).
+* **Updating from 1.0.0:** just run the new installer - it replaces the old version and its shortcuts. The app's settings folder has a new name in 1.1.0, so choose your preferences in **Settings** once more.
 
 ---
 
@@ -54,8 +55,23 @@ Go to the [**latest release**](../../releases/latest) and pick one file:
 
 ### 📄 PDF
 * **Create a PDF from images** (JPEGs are embedded without quality loss) · **Merge PDFs** in any order
+* **A folder of images becomes a PDF with the folder's name**: add the folder *My Comic Chapter 01* and the PDF is suggested as *My Comic Chapter 01.pdf*, with the pages in natural order (1, 2, 3 ... 10). Spaces, numbers and any language (漫画 第1話, తెలుగు కథ, Café) are kept; only characters Windows does not allow in file names are replaced. If that PDF already exists you are asked first - it is never replaced silently.
 * **Split a PDF** into *N equal parts* (e.g. 500 pages → 10 files of 50) or *every N pages* (500 pages → 4 files of 125); the result is shown before you start
 * **PDF to images** (PNG or JPEG, you choose the DPI) · **Download a PDF** from a direct link (checked to be a real PDF) · PDF information
+
+### 🌐 Translate (AI)
+* Translate a **PDF** - a book, a document, **scanned pages**, **manga, comics or webtoons** - or a **folder of comic images** into another language. The result is a **new PDF** named like *Japanese Book - English.pdf*; the original is never changed.
+* **Pages with real text** keep their layout: every paragraph is replaced by its translation in the same place, with a similar size and colour; pictures stay where they are.
+* **Scanned pages, manga and comics:** the AI finds the speech bubbles, captions and signs, the original lettering is covered, and the translation is written into the same bubble or box. The artwork, the page size and the page order stay the same. Sound effects can be translated as small labels next to the artwork (optional). Tall webtoon strips are handled in pieces.
+* **46 languages** in both directions - including English, Hindi, Telugu, Tamil, Kannada, Malayalam, Bengali, Spanish, French, German, Japanese, Korean, Chinese (Simplified and Traditional), Arabic and Russian. The source language is detected automatically, or you choose it.
+* The AI is instructed to translate faithfully: no summaries, no comments, nothing left out or added; names, numbers and the reading order are kept.
+* Translate everything or only some pages (`1-5, 8`). If a run stops (usage limit, no internet), **run it again and it continues** where it stopped - finished pages are not sent again.
+* Uses **your own** Google Gemini API key - see [AI translation: your own API key](#ai-translation-your-own-api-key).
+
+<p align="center">
+  <img src="docs/screenshots/translate.png" width="49%" alt="Translate a document">
+  <img src="docs/screenshots/translate-example.png" width="40%" alt="A comic page before and after translation (example)">
+</p>
 
 <p align="center">
   <img src="docs/screenshots/video-download.png" width="49%" alt="Choosing a download quality">
@@ -75,7 +91,7 @@ Go to the [**latest release**](../../releases/latest) and pick one file:
 
 ## How to use it
 
-1. Open the app and click a card: **VIDEO**, **AUDIO / MUSIC**, **IMAGES** or **PDF** (or **DOWNLOAD**).
+1. Open the app and click a card: **VIDEO**, **AUDIO / MUSIC**, **IMAGES**, **PDF** or **TRANSLATE** (or **DOWNLOAD**).
 2. Pick a task from the list on the left.
 3. Choose your file (**Browse**, or drag it from Explorer) or paste a link.
 4. Set the options, check the output folder and file name.
@@ -83,9 +99,45 @@ Go to the [**latest release**](../../releases/latest) and pick one file:
 
 Press **Home** (top-left, or `Ctrl+H`) to go back.
 
-**Settings** lets you choose the download folder, the default output folder, what happens when a file already exists (ask / keep both / replace), preferred video and audio formats and quality, and the theme.
-Settings are stored in `%APPDATA%\KoushikMediaToolkit`, logs in `%LOCALAPPDATA%\KoushikMediaToolkit\logs`.
-*Portable use:* put an empty file named `portable.txt` next to the portable EXE and everything is stored beside it instead.
+**Settings** lets you choose the download folder, the default output folder, what happens when a file already exists (ask / keep both / replace), preferred video and audio formats and quality, the default translation language, and the theme.
+Settings are stored in `%APPDATA%\MediaToolkit`, logs in `%LOCALAPPDATA%\MediaToolkit\logs`.
+*Portable use:* put an empty file named `portable.txt` next to the portable EXE and everything is stored beside it instead (a saved API key is still kept in Windows Credential Manager, never in that folder).
+
+---
+
+## AI translation: your own API key
+
+Translation is done by **Google's Gemini API**. The app does **not** contain an API key and nobody shares one: **every user creates and uses their own free key**. Requests are sent directly from your computer to Google with your key, so usage limits and any charges belong to **your own** Google account - never to the makers of this app.
+
+### Get a key (about two minutes)
+1. Open **Google AI Studio**: <https://aistudio.google.com/apikey>
+2. Sign in with your Google account (no account yet? choose *Create account* on the sign-in page).
+3. If Google asks you to accept the Gemini API terms, read and accept them.
+4. On the *API Keys* page, copy your key. New users usually already have one (Google creates a default project and key after the terms are accepted); otherwise click **Create API key**. If you already use Google Cloud, you may first have to choose or import a project.
+5. In the app: **TRANSLATE → AI provider & API key**, paste the key, click **Test key**, then **Save key**.
+
+Google's official guide: <https://ai.google.dev/gemini-api/docs/api-key>. The same steps are shown inside the app.
+
+### Managing the key
+* **Save key** keeps it in **Windows Credential Manager**, protected by your Windows account (you can also see or delete it in *Control Panel → Credential Manager → Windows Credentials*, entry `MediaToolkit/Gemini API key`). It is never written to the settings file, the log, the translation progress or the app folder.
+* **Use for this session only** uses the key until you close the app, without saving it.
+* Saving a new key **replaces** the old one; **Remove saved key** deletes it from this computer. (To revoke a key completely, delete it in Google AI Studio.)
+* The app only ever shows a masked preview such as `AIza••••••••3xYz`. Keys are removed from log messages automatically.
+* **Model:** `gemini-3.8-flash` by default; `gemini-3.5-flash-lite` is faster and cheaper. *Refresh list* shows every model your key can use.
+
+### Costs, limits and privacy
+* Google offers a **free tier** with per-minute and daily limits for many models. Daily limits reset at midnight Pacific time. See your limits at <https://aistudio.google.com/rate-limit> and prices at <https://ai.google.dev/gemini-api/docs/pricing>.
+* If you turn on billing for your key's Google Cloud project, usage beyond the free tier is **charged to your Google account**. A long book or a whole manga volume means many requests - try a few pages first (*Pages: 1-5*).
+* Text pages are sent in batches (several pages per request); image pages are sent one by one (tall webtoon strips in a few pieces).
+* **Privacy:** the pages you translate are sent to Google. Under Google's terms, content sent with an unpaid (free-tier) key may be used to improve Google's products - do not translate confidential documents with a free-tier key.
+* When a limit is reached, the app stops and tells you; already translated pages are kept, so running the same translation later continues from there. Translation progress is stored in `%APPDATA%\MediaToolkit\translation-progress` (no keys in it) and can be cleared in **Settings → AI translation**.
+
+### Good to know
+* Translation quality depends on the AI model and the scan quality. Check important documents.
+* Very small, handwritten or heavily stylised lettering may be missed. Text that is part of detailed artwork (not in a bubble or box) is covered with a plain patch in the surrounding colour.
+* Japanese vertical text is replaced with horizontal text in the same bubble.
+* The translated PDF contains real text. In some scripts (for example Telugu or Tamil) copying or searching that text in a PDF viewer may give slightly wrong characters, even though the page looks right.
+* PDFs that need a password to open are not supported.
 
 ---
 
@@ -98,9 +150,13 @@ Settings are stored in `%APPDATA%\KoushikMediaToolkit`, logs in `%LOCALAPPDATA%\
 | "Sign in to confirm you're not a bot" / login needed | Downloads that need an account are not supported. Try again later. |
 | "The link opened a web page instead of a PDF" | Open the link in your browser and copy the address of the PDF file itself. |
 | "The file is being used by another program" | Close the program that has the file open (media player, PDF viewer). |
+| Translate: "API key problem" | The key was not accepted. Copy the whole key again from Google AI Studio (or create a new one), then **Test key** and **Save key**. |
+| Translate: "Usage limit reached" / "Too many requests" | Your key's free limit is used up for now. Finished pages are kept - run the same translation again later (daily limits reset at midnight Pacific time). |
+| Translate: "AI model not available" | Open **AI provider & API key**, click **Refresh list** and choose another model. |
+| Translate: some pages were left untranslated | The AI refused or could not read those pages. They are listed at the end; run the translation again to retry only those pages. |
 | Something else | Open **Diagnostics → Copy report**. Technical details are in the log folder. |
 
-**Limitations:** content behind a login, paywall or DRM, live streams and playlists cannot be downloaded (on purpose). PDFs that need a password to open are not supported. For animated GIF/WEBP only the first frame is edited.
+**Limitations:** content behind a login, paywall or DRM, live streams and playlists cannot be downloaded (on purpose). PDFs that need a password to open are not supported. For animated GIF/WEBP only the first frame is edited. AI translation needs an internet connection and your own Google Gemini API key.
 
 ---
 
@@ -114,21 +170,24 @@ The complete source code is in this repository.
 python -m venv .venv
 .venv\Scripts\python.exe -m pip install -r requirements-dev.txt
 .venv\Scripts\python.exe run.py            # run the app
-.venv\Scripts\python.exe -m pytest         # 300+ tests, no internet needed
+.venv\Scripts\python.exe -m pytest         # 400+ tests, no internet or API key needed
 .venv\Scripts\python.exe build.py          # portable EXE + installer -> release\
 ```
 
 `build.py` runs the tests, bundles FFmpeg, builds the app with PyInstaller (folder + single-file EXE), runs a self-test on each packaged build, compiles the installer and writes checksums. A packaged app can be checked any time with
-`KoushikMediaToolkit.exe --self-test --self-test-output report.json`.
+`MediaToolkit.exe --self-test --self-test-output report.json`.
+
+The tests never use a real API key: the translation tests use a stand-in AI provider and a local mock of the Gemini API. Never put a real key in the code, tests or config files - if an example is needed, write `YOUR_API_KEY_HERE`.
 
 ### Project structure
 ```
 app/
 ├─ main.py          start-up
-├─ config/          settings and file locations
+├─ config/          settings, file locations, secure key storage (Windows Credential Manager)
 ├─ core/            errors, background jobs (progress + cancel), module registry
 ├─ models/          media information and download formats
-├─ services/        all the real work (FFmpeg, yt-dlp, images, PDF) - no GUI code
+├─ services/        all the real work (FFmpeg, yt-dlp, images, PDF, translation) - no GUI code
+│  └─ translation/  AI provider (Gemini), text pages, image pages, bubble cleanup, resume
 ├─ ui/              PySide6 windows, pages and widgets
 └─ utils/           file names, sorting, time formats, URLs, logging
 tests/              automated tests
@@ -152,9 +211,11 @@ It is built on these excellent open-source projects:
 | [FFmpeg](https://ffmpeg.org) (bundled GPL build from [BtbN/FFmpeg-Builds](https://github.com/BtbN/FFmpeg-Builds)) | video and audio processing | GPL-3.0 |
 | [yt-dlp](https://github.com/yt-dlp/yt-dlp) | website downloads | Unlicense |
 | [PySide6 / Qt](https://www.qt.io/qt-for-python) | user interface | LGPL-3.0 |
-| [PyMuPDF](https://github.com/pymupdf/PyMuPDF) | PDF rendering | AGPL-3.0 |
+| [PyMuPDF](https://github.com/pymupdf/PyMuPDF) | PDF rendering, translated PDF pages (with its built-in Noto fonts) | AGPL-3.0 |
 | [pypdf](https://github.com/py-pdf/pypdf) | PDF merge and split | BSD-3-Clause |
-| [Pillow](https://python-pillow.org) | images | MIT-CMU |
-| [requests](https://requests.readthedocs.io) | PDF downloads | Apache-2.0 |
+| [Pillow](https://python-pillow.org) | images, cleaning speech bubbles | MIT-CMU |
+| [requests](https://requests.readthedocs.io) | PDF downloads, Gemini API requests | Apache-2.0 |
 
-**Please only download content you have the right to download.** This app does not bypass DRM, paywalls, logins or any other access protection.
+AI translation uses the [Google Gemini API](https://ai.google.dev/gemini-api/docs) with each user's own key and is subject to [Google's terms](https://ai.google.dev/gemini-api/terms). This project is not affiliated with Google.
+
+**Please only download content you have the right to download**, and only translate documents you are allowed to use. This app does not bypass DRM, paywalls, logins or any other access protection.

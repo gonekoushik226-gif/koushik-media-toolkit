@@ -11,7 +11,7 @@ from pathlib import Path
 
 from app.utils.urls import redact_url
 
-LOG_FILE_NAME = "koushik-media-toolkit.log"
+LOG_FILE_NAME = "media-toolkit.log"
 
 _URL_RE = re.compile(r"https?://[^\s'\"<>]+")
 _COOKIE_RE = re.compile(r"(?im)\b(cookie|set-cookie)(\s*:\s*)(.+)$")
@@ -21,8 +21,12 @@ _SECRET_RE = re.compile(
 )
 
 
+_GOOGLE_API_KEY_RE = re.compile(r"AIza[0-9A-Za-z_\-]{30,}")
+
+
 def redact(text: str) -> str:
-    """Remove URL query strings (signed links, tokens) and obvious secrets."""
+    """Remove URL query strings (signed links, tokens), API keys and obvious secrets."""
+    text = _GOOGLE_API_KEY_RE.sub("<redacted-api-key>", text)
     text = _URL_RE.sub(lambda m: redact_url(m.group(0)), text)
     text = _COOKIE_RE.sub(lambda m: f"{m.group(1)}{m.group(2)}<redacted>", text)
     return _SECRET_RE.sub(lambda m: f"{m.group(1)}{m.group(2)}{m.group(3) or ''}<redacted>", text)

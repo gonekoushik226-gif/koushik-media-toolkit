@@ -1,4 +1,4 @@
-# Developer guide - Koushik Media Toolkit
+# Developer guide - Media Toolkit
 
 This document explains how the application is put together, the rules the code follows, and
 how to extend it. For installation, usage and build commands see the [README](../README.md).
@@ -17,6 +17,7 @@ how to extend it. For installation, usage and build commands see the [README](..
  ┌───┴──────────────── app/services (no Qt) ─────────────────────────────────┐
  │ video · audio · images · pdf · downloads(ytdlp, plans, http) · diagnostics │
  │ ffmpeg/runner · ffmpeg/probe · ffmpeg/processor · ffmpeg/codecs · tools    │
+ │ translation (provider · gemini · job · text_pages · image_pages · cleanup) │
  └───────────────┬──────────────────────────────────────┬─────────────────────┘
                  ▼                                      ▼
         app/models (data)                     app/core, app/utils, app/config
@@ -69,7 +70,7 @@ or fix. Let genuine bugs propagate - they are logged with a traceback and report
 ## 4. Safe outputs (the "never a corrupt file" rule)
 
 * FFmpeg jobs go through `MediaProcessor.render` (`app/services/ffmpeg/processor.py`): output to
-  `name.kmt-partial-XXXX.ext` next to the destination, verify with ffprobe (`Expectation`:
+  `name.mt-partial-XXXX.ext` next to the destination, verify with ffprobe (`Expectation`:
   required/forbidden streams, duration within tolerance), then `os.replace` to the final name.
   On any failure or cancel the temp file is deleted.
 * `render_first_working` tries a list of `Attempt`s - typically stream copy first, re-encode
@@ -77,7 +78,7 @@ or fix. Let genuine bugs propagate - they are logged with a traceback and report
   into a broken file.
 * Images and PDFs are written the same way (`save_image`, `_replace_from_temp`), PDFs are
   re-opened and page-counted after writing.
-* Downloads go into a private `.kmt-download-XXXX` folder inside the output folder and are moved
+* Downloads go into a private `.mt-download-XXXX` folder inside the output folder and are moved
   into place at the end; the folder is always removed (with retries - Windows keeps files locked
   briefly after a cancelled download).
 * Overwrite policy (`Settings.overwrite_policy`): single-output panels call
@@ -113,12 +114,17 @@ passed as separate `-metadata key=value` arguments.
 ## 7. Settings, paths, logging
 
 * `app/config/paths.py` is the only place that knows about frozen vs. source, portable mode
-  (`portable.txt` next to the EXE) and `KMT_DATA_DIR` (tests).
+  (`portable.txt` next to the EXE) and `MEDIA_TOOLKIT_DATA_DIR` (tests).
 * `app/config/settings.py`: a dataclass persisted as JSON; loading validates every value and
   never fails; saving is atomic. Add a setting by adding a field (with a default) and, for
   choices/ranges, an entry in `CHOICES`/`RANGES`, then a widget in `app/ui/pages/settings.py`.
 * `app/utils/logging_setup.py`: rotating file log; every message passes through `redact()`,
-  which strips URL query strings, credentials in URLs, cookies, passwords and tokens.
+  which strips URL query strings, credentials in URLs, cookies, passwords, tokens and anything
+  that looks like a Google API key.
+* `app/config/credentials.py`: secrets (the user's AI API key) live in **Windows Credential
+  Manager** (`CredWriteW`/`CredReadW`/`CredDeleteW` via ctypes, target `MediaToolkit/<name>`),
+  never in `settings.json`. `mask_secret()` gives the only form of a key that may be displayed or
+  logged. Tests use `MemorySecretStore`.
 
 ## 8. UI building blocks
 
@@ -129,7 +135,7 @@ passed as separate `-metadata key=value` arguments.
 | `InfoPanel` | Shows text information about a file (`describer()`). |
 | `OperationsPage` | Module page: list of `(key, label, PanelClass)`; panels are created lazily; `show_operation(key)` for deep links (`ctx.navigate("video", "download")`). |
 | `FileListWidget` | Ordered file list: add files/folder, drag & drop (also from Explorer), remove, clear, move up/down, sort (name, natural, EXIF date, created, modified, size), reverse, shuffle. |
-| `FilePicker`, `OutputPanel` | Single input file; output folder + name + extension + "open folder when done". |
+| `FilePicker`, `OutputPanel` | Single input file (optionally a folder: `allow_folder=True`); output folder + name + extension + "open folder when done". |
 | `FormatTable`, `ImagePreview`, `StatusArea` | yt-dlp formats; image preview with crop selection; the status bar. |
 
 Themes live in `ui/theme.py` (colour tokens → palette + style sheet). Icons are SVGs in
@@ -171,7 +177,58 @@ Themes live in `ui/theme.py` (colour tokens → palette + style sheet). Icons ar
 4. Run `pytest`, `ruff check app tests`, then `build.py` - the packaged self-test opens every
    registered page, so a broken page fails the build.
 
-## 10. Testing strategy
+## 10. AI translation (`app/services/translation`)
+
+**Keys.** There is no developer key. Each user enters their own key (`keys.ApiKeyManager`:
+save / replace / remove / session-only, backed by `credentials.py`). `AppContext.translation_provider()`
+builds the provider with that key and raises `MissingApiKeyError` when there is none; the UI then
+shows the setup steps. Never put a real key in code, tests, docs or example files - use
+`YOUR_API_KEY_HERE`, and build fake keys in tests at run time (`"AIza" + "x" * 35`) so that secret
+scanners do not flag them.
+
+**Provider interface** (`provider.py`): `list_models()`, `translate_segments(segments, target,
+source, context, ctx) -> {id: text}` and `analyze_image(image, mime, target, source, doc_type,
+include_sfx, ctx) -> [{"box", "kind", "original", "translation"}]` (boxes normalised 0-1,
+`x0, y0, x1, y1`). Errors are split into *fatal* ones (`FATAL_ERRORS`: key, quota, rate limit,
+network, service, model - the job stops, finished pages stay cached) and `PageError`s (blocked,
+unusable answer, rejected - only that page is skipped and listed as a warning).
+
+**Gemini** (`gemini.py`): REST via `requests` (no extra dependency). The key goes only in the
+`x-goog-api-key` header, never in a URL. JSON output is enforced with `responseSchema` (with a
+fallback when a model refuses the schema). Retries: at most `max_retries` (default 4) for
+network errors, 5xx and per-minute 429s, waiting for the server's `retryDelay` (capped at 90 s)
+or exponential backoff; daily-quota 429s, 4xx and key errors are never retried. Missing segment
+ids are asked for once more; an unusable answer is retried once.
+
+**Job** (`job.py`): `plan_document()` decides per page - `text` (enough visible text, not
+rotated) or `image` (scans, comics, invisible OCR layers, rotated pages); a folder of images is
+first turned into a temporary PDF. Text pages are batched (`BATCH_CHARS`) with a little
+preceding text for context; a batch that fails is retried page by page, and a too-long answer is
+split in half. Each finished page is written to `ProgressCache` (in the data folder, keyed by a
+hash of the document, language, model and options; it never contains the key), so a stopped run
+resumes without repeating requests. The output is written to a temporary file, checked and then
+renamed; the source file is only ever opened for reading, and an output path equal to the source
+is refused.
+
+**Pages.** `text_pages.py` removes each text block with a redaction that keeps images and vector
+graphics, then writes the translation into the same rectangle with `insert_htmlbox` (PyMuPDF's
+built-in Noto fonts shape Indic, CJK, Arabic, ...; the font size shrinks until it fits).
+`image_pages.py` renders the page (tall webtoon strips as overlapping tiles), asks the AI for
+text regions, and `cleanup.py` erases the lettering: flood-fill from around the text finds the
+enclosing bubble (letters are the holes in it), which is repainted in its own colour as a
+transparent PNG patch; text on artwork gets a small patch in the surrounding colour; sound
+effects keep the artwork and get a label. The translation is then inserted, centred, inside the
+bubble.
+
+**Prompts** (`prompts.py`) state the fidelity rules (no summaries, comments, omissions or
+additions; keep names, numbers and order). Bump `PROMPT_VERSION` when prompts change so cached
+pages from older prompts are not reused.
+
+**Adding another AI service:** implement `TranslationProvider` (map its errors to the classes in
+`provider.py`), then choose it in `AppContext.translation_provider()` and add its key name and
+setup steps to the key panel (`app/ui/pages/translate.py`).
+
+## 11. Testing strategy
 
 * Pure logic (split math, sorting, file names, time parsing, format parsing, download plans,
   URL/Content-Disposition handling) - plain unit tests.
@@ -181,9 +238,14 @@ Themes live in `ui/theme.py` (colour tokens → palette + style sheet). Icons ar
   stream generated by FFmpeg; both yt-dlp backends are tested against it. No live websites.
 * GUI - offscreen Qt; panels are driven through their buttons and jobs run through the real
   `JobController`.
+* AI translation - no network and no real key: `tests/translation_helpers.FakeProvider` for the
+  pipeline (text PDFs in several scripts, synthetic manga pages, webtoon tiling, resume, failures,
+  cancel, 120-page batching, original file unchanged), a local mock HTTP server for the Gemini
+  client (request shape, every error mapping, retries, schema fallback), and a round trip through
+  the real Windows Credential Manager under a throw-away name.
 * Packaged builds - `--self-test` (see `app/selftest.py`), run automatically by `build.py`.
 
-## 11. Packaging notes
+## 12. Packaging notes
 
 * PyInstaller `--onedir` for the installer (fast start), `--onefile` for the portable EXE.
 * `ffmpeg.exe`/`ffprobe.exe` are added as *data* into `tools/` (skips PyInstaller's binary

@@ -62,7 +62,7 @@ def test_download_pdf(served_pdf, tmp_path):
     assert out.read_bytes() == (www / "sample.pdf").read_bytes()
     assert "3 page(s)" in result.message
     assert any(f == 1.0 for f, _ in progress)
-    assert not [p for p in out.parent.iterdir() if "kmt-partial" in p.name]
+    assert not [p for p in out.parent.iterdir() if "mt-partial" in p.name]
 
 
 def test_redirect_and_inspect(served_pdf):
@@ -82,7 +82,7 @@ def test_html_instead_of_pdf(served_pdf, tmp_path):
     out = tmp_path / "page.pdf"
     with pytest.raises(DownloadError, match="web page"):
         http.download_pdf(f"{base}/page", out, JobContext())
-    assert not out.exists() and not list(tmp_path.glob("*kmt-partial*"))
+    assert not out.exists() and not list(tmp_path.glob("*mt-partial*"))
 
 
 @pytest.mark.parametrize("status, text", [(404, "404"), (403, "forbidden"), (500, "internal problem")])
@@ -171,7 +171,7 @@ def test_ytdlp_direct_file(media_tools, served_video, tmp_path):
     assert out == tmp_path / "My Clip.mp4" and out.exists()
     assert probe(media_tools.ffprobe, out).has_video
     assert 1.0 in progress
-    assert not [p for p in tmp_path.iterdir() if p.name.startswith(".kmt-download-")]
+    assert not [p for p in tmp_path.iterdir() if p.name.startswith(".mt-download-")]
 
 
 @pytest.mark.ffmpeg

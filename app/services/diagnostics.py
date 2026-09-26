@@ -130,7 +130,7 @@ def _library_checks() -> list[Check]:
 def _writable_check(label: str, folder: Path) -> Check:
     try:
         folder.mkdir(parents=True, exist_ok=True)
-        with tempfile.NamedTemporaryFile(dir=folder, prefix=".kmt-write-test-", delete=True):
+        with tempfile.NamedTemporaryFile(dir=folder, prefix=".mt-write-test-", delete=True):
             pass
     except OSError as exc:
         return Check(label, ERROR, "Not writable", details=f"{folder}\n{exc}",
@@ -161,7 +161,8 @@ def _internet_check() -> Check:
                  fix="Downloads need internet access. Check your network, proxy or firewall settings.")
 
 
-def run_diagnostics(settings, locator: ToolLocator, include_network: bool = True, qt_version: str = "") -> list[Check]:
+def run_diagnostics(settings, locator: ToolLocator, include_network: bool = True, qt_version: str = "",
+                    translation_key_status: str = "") -> list[Check]:
     mode = "installed/packaged" if paths.is_frozen() else "running from source"
     checks = [
         Check("Application", INFO, f"{APP_NAME} {__version__}",
@@ -175,6 +176,11 @@ def run_diagnostics(settings, locator: ToolLocator, include_network: bool = True
     checks.append(_ytdlp_check(locator))
     checks.append(_js_runtime_check())
     checks.extend(_library_checks())
+    if translation_key_status:
+        model = getattr(settings, "translation_model", "") or "default model"
+        checks.append(Check("AI translation", INFO, translation_key_status,
+                            details=f"Provider: Google Gemini API ({model}). Each user uses their own API key; "
+                                    "only a masked preview of the key is shown."))
     checks.append(_writable_check("Download folder", settings.effective_download_dir()))
     if settings.output_dir:
         checks.append(_writable_check("Default output folder", Path(settings.output_dir)))

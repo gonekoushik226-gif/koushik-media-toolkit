@@ -230,7 +230,7 @@ class VideoService:
         ext = output.suffix.lstrip(".").lower()
         expect = Expectation(video=True, audio=any_audio, duration=total,
                              tolerance=max(2.0, (total or 0) * 0.02 + 0.5 * len(infos)))
-        workdir = Path(tempfile.mkdtemp(prefix="kmt-merge-"))
+        workdir = Path(tempfile.mkdtemp(prefix="mt-merge-"))
         try:
             list_file = workdir / "list.txt"
             list_file.write_text(concat_list_text(sources), encoding="utf-8")

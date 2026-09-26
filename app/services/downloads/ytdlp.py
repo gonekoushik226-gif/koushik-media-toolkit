@@ -42,7 +42,7 @@ from app.utils.urls import UrlError, validate_web_url
 
 log = logging.getLogger(__name__)
 
-WORK_DIR_PREFIX = ".kmt-download-"
+WORK_DIR_PREFIX = ".mt-download-"
 ANALYZE_FORMAT = "bv*+ba/b/bv*/ba*"  # always matches something if any format exists
 _ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
 _LEFTOVER_SUFFIXES = (".part", ".ytdl", ".temp", ".tmp")
@@ -417,9 +417,9 @@ class EmbeddedYtDlp(YtDlpBackend):
 # ----------------------------------------------------------------------------
 # External yt-dlp.exe backend
 # ----------------------------------------------------------------------------
-_PROGRESS_PREFIX = "KMTP "
-_POSTPROCESS_PREFIX = "KMTPP "
-_FILE_PREFIX = "KMTFILE "
+_PROGRESS_PREFIX = "MTPROG "
+_POSTPROCESS_PREFIX = "MTPOST "
+_FILE_PREFIX = "MTFILE "
 
 
 def _na_float(value: str) -> float | None:

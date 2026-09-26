@@ -13,7 +13,7 @@ _RESERVED_NAMES = frozenset(
     | {f"LPT{c}" for c in "123456789¹²³"}
 )
 MAX_NAME_LENGTH = 150  # keeps full paths comfortably below the classic 260 limit
-PARTIAL_MARKER = ".kmt-partial-"
+PARTIAL_MARKER = ".mt-partial-"
 
 
 def sanitize_filename(name: str, fallback: str = "output", max_length: int = MAX_NAME_LENGTH) -> str:

@@ -8,3 +8,7 @@ dist/
 release/
 vendor/
 *.spec
+
+# Local secrets must never be committed (the app keeps API keys in Windows Credential Manager)
+.env
+*.env
